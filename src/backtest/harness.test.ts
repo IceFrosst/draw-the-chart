@@ -8,7 +8,11 @@ describe('runBacktestSuite', () => {
     expect(overallMeans['Random Walk']).toBeGreaterThanOrEqual(30);
     expect(overallMeans['Random Walk']).toBeLessThanOrEqual(35.25);
 
-    expect(overallMeans['Flat Line']).toBeGreaterThanOrEqual(25);
+    // Flat line now correctly scores lower: the old turning-point component
+    // gave 20/20 when actual had no detected extrema (common on smooth BTC
+    // trends). The fix uses path correlation so a trivial flat prediction
+    // only gets ~10/20 instead of a free 20/20.
+    expect(overallMeans['Flat Line']).toBeGreaterThanOrEqual(23);
     expect(overallMeans['Flat Line']).toBeLessThanOrEqual(35);
 
     expect(overallMeans['Naive Trend']).toBeGreaterThanOrEqual(35);

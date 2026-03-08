@@ -229,7 +229,12 @@ export function Game() {
     });
     if (normalized.length < 3) return;
 
-    const predictedPrices = resampleDrawnPath(normalized, future.length);
+    // Anchor-aligned scoring: both paths must start from the anchor price
+    // so log-returns are computed in the same reference frame.
+    // This matches the backtest harness which includes the anchor in actualPrices.
+    const anchorPrice = lastHistory.close;
+    const actualPrices = [anchorPrice, ...future.map((c) => c.close)];
+    const predictedPrices = resampleDrawnPath(normalized, actualPrices.length);
     if (predictedPrices.length === 0) return;
 
     const tStart = normalized[0]!.time;
@@ -241,7 +246,6 @@ export function Game() {
     setNormalizedPath(normalized);
     setResampledPath(resampledPoints);
 
-    const actualPrices = future.map((c) => c.close);
     const result = computeScore(predictedPrices, actualPrices);
     setScore(result);
     setPhase('submitted');

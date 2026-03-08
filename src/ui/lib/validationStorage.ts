@@ -134,34 +134,35 @@ export function computeValidationStats(judgments: ValidationJudgment[]): Validat
     gapBuckets[bucket].count++;
     if (agrees) gapBuckets[bucket].agree++;
 
-    // Strategy preferences
+    // Strategy preferences — ensure entries exist, then use local ref
     for (const strat of [j.strategyA, j.strategyB]) {
       if (!stratPrefs[strat]) stratPrefs[strat] = { humanWins: 0, algoWins: 0, appearances: 0 };
-      stratPrefs[strat].appearances++;
+      const entry = stratPrefs[strat]!;
+      entry.appearances++;
     }
 
     // Track which strategy the human preferred vs algo
     if (j.humanChoice === 'A') {
       if (!stratPrefs[j.strategyA]) stratPrefs[j.strategyA] = { humanWins: 0, algoWins: 0, appearances: 0 };
-      stratPrefs[j.strategyA].humanWins++;
+      stratPrefs[j.strategyA]!.humanWins++;
     } else if (j.humanChoice === 'B') {
       if (!stratPrefs[j.strategyB]) stratPrefs[j.strategyB] = { humanWins: 0, algoWins: 0, appearances: 0 };
-      stratPrefs[j.strategyB].humanWins++;
+      stratPrefs[j.strategyB]!.humanWins++;
     }
 
     if (algo === 'A') {
       if (!stratPrefs[j.strategyA]) stratPrefs[j.strategyA] = { humanWins: 0, algoWins: 0, appearances: 0 };
-      stratPrefs[j.strategyA].algoWins++;
+      stratPrefs[j.strategyA]!.algoWins++;
     } else if (algo === 'B') {
       if (!stratPrefs[j.strategyB]) stratPrefs[j.strategyB] = { humanWins: 0, algoWins: 0, appearances: 0 };
-      stratPrefs[j.strategyB].algoWins++;
+      stratPrefs[j.strategyB]!.algoWins++;
     }
 
     // Confidence
     totalConf += j.confidence;
     if (!confBuckets[j.confidence]) confBuckets[j.confidence] = { count: 0, agree: 0 };
-    confBuckets[j.confidence].count++;
-    if (agrees) confBuckets[j.confidence].agree++;
+    confBuckets[j.confidence]!.count++;
+    if (agrees) confBuckets[j.confidence]!.agree++;
   }
 
   const agreementByConfidence: Record<number, { count: number; agreement: number }> = {};

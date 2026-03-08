@@ -188,6 +188,39 @@ function hungarianAssignment(costMatrix: number[][]): [number, number][] {
 }
 
 /**
+ * Pearson correlation between two paths.
+ * Returns 1.0 for perfect positive correlation, 0 for uncorrelated,
+ * -1.0 for inverted. If either path has zero variance (constant),
+ * returns 1.0 if both are constant, 0.0 otherwise.
+ */
+function pathCorrelation(a: number[], b: number[]): number {
+  const N = a.length;
+  if (N === 0) return 0;
+
+  const meanA = a.reduce((s, v) => s + v, 0) / N;
+  const meanB = b.reduce((s, v) => s + v, 0) / N;
+
+  let cov = 0;
+  let varA = 0;
+  let varB = 0;
+
+  for (let i = 0; i < N; i++) {
+    const dA = a[i]! - meanA;
+    const dB = b[i]! - meanB;
+    cov += dA * dB;
+    varA += dA * dA;
+    varB += dB * dB;
+  }
+
+  if (varA < 1e-16 || varB < 1e-16) {
+    // One or both paths are essentially constant
+    return varA < 1e-16 && varB < 1e-16 ? 1.0 : 0.0;
+  }
+
+  return cov / Math.sqrt(varA * varB);
+}
+
+/**
  * Component C: Turning Points (0–20 points)
  *
  * 1. Smooth both series with Gaussian kernel
@@ -227,10 +260,21 @@ export function computeTurningPointScore(
   const predExtrema = findExtrema(smoothedPred, minProminence);
   const actualExtrema = findExtrema(smoothedActual, minProminence);
 
-  // If no actual turning points, reward if predicted also has few
+  // If no actual turning points detected after smoothing, we can't do
+  // extrema-matching. Instead, score based on overall shape similarity:
+  //   - A near-perfect tracker of a smooth trend deserves ~20/20
+  //   - A trivial flat line against a clear trend deserves ~10/20
+  //   - Hallucinated turns on a smooth path are penalized further
   if (actualExtrema.length === 0) {
+    if (predExtrema.length === 0) {
+      // Both smooth — use Pearson correlation on smoothed paths to measure fit
+      const similarity = pathCorrelation(smoothedPred, smoothedActual);
+      // similarity 1.0 → 20, 0.0 → 10, -1.0 → 0
+      return Math.max(0, Math.min(20, 10 + 10 * similarity));
+    }
+    // Prediction hallucinated turns on a smooth actual path
     const penalty = predExtrema.length * config.turningPointHallucinationPenalty;
-    return Math.max(0, 20 * (1 - penalty));
+    return Math.max(0, 10 * (1 - penalty));
   }
 
   // If no predicted turning points, penalize for missing all actual
