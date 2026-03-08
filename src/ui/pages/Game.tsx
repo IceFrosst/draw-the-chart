@@ -564,21 +564,19 @@ export function Game() {
       style={{
         height: '100svh',
         minHeight: '100vh',
-        paddingTop: '56px',
+        paddingTop: '48px',
         boxSizing: 'border-box',
         overflow: 'hidden',
         overscrollBehavior: 'none',
-        background:
-          'radial-gradient(circle at top left, rgba(207, 123, 53, 0.09), transparent 24%), radial-gradient(circle at bottom right, rgba(103, 193, 180, 0.06), transparent 18%), var(--bg-primary)',
+        background: 'var(--bg-primary)',
       }}
     >
       {/* Game top bar */}
       <div
-        className="flex items-center justify-between px-2 sm:px-4 h-12 shrink-0 gap-2"
+        className="flex items-center justify-between px-2 sm:px-4 h-10 shrink-0 gap-2 overflow-x-auto"
         style={{
-          borderBottom: '1px solid rgba(58, 70, 59, 0.88)',
-          background:
-            'linear-gradient(180deg, rgba(15, 19, 16, 0.96), rgba(18, 22, 18, 0.92))',
+          borderBottom: '1px solid var(--border)',
+          background: 'var(--bg-secondary)',
         }}
       >
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -589,9 +587,9 @@ export function Game() {
             <span
               className="dtc-chip"
               style={{
-                background: 'rgba(207, 123, 53, 0.12)',
-                borderColor: 'rgba(207, 123, 53, 0.34)',
-                color: 'var(--accent-strong)',
+                background: 'var(--accent-soft)',
+                borderColor: 'rgba(212, 168, 92, 0.2)',
+                color: 'var(--accent)',
               }}
             >
               DRAWING
@@ -601,8 +599,8 @@ export function Game() {
             <span
               className="dtc-chip"
               style={{
-                background: 'rgba(72, 183, 132, 0.12)',
-                borderColor: 'rgba(72, 183, 132, 0.3)',
+                background: 'var(--green-soft)',
+                borderColor: 'rgba(34, 197, 94, 0.15)',
                 color: 'var(--green)',
               }}
             >
@@ -610,17 +608,17 @@ export function Game() {
             </span>
           )}
           {phase === 'setup' && (
-            <span className="hidden sm:flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <span className="hidden sm:flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
               {isLive && (
                 <span className="flex items-center gap-1">
                   <span
                     className="inline-block w-1.5 h-1.5 rounded-full"
-                    style={{ background: 'var(--teal)', boxShadow: '0 0 4px rgba(103, 193, 180, 0.5)' }}
+                    style={{ background: 'var(--green)' }}
                   />
-                  <span style={{ color: 'var(--teal)' }}>LIVE</span>
+                  <span style={{ color: 'var(--green)' }}>LIVE</span>
                 </span>
               )}
-              Sandbox Mode
+              Sandbox
             </span>
           )}
           {roundSeed != null && phase !== 'setup' && (
@@ -632,10 +630,10 @@ export function Game() {
 
         {/* Timeframe selector */}
         <div
-          className="flex items-center gap-1 p-1 shrink-0"
+          className="flex items-center gap-0.5 p-0.5 shrink-0 rounded"
           style={{
-            background: 'rgba(14, 18, 15, 0.92)',
-            border: '1px solid rgba(58, 70, 59, 0.82)',
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid var(--border)',
           }}
         >
           {TIMEFRAME_KEYS.map((tfKey) => (
@@ -643,16 +641,13 @@ export function Game() {
               key={tfKey}
               onClick={() => handleTimeframeChange(tfKey)}
               disabled={phase !== 'setup'}
-              className="px-2 sm:px-3 py-1 text-xs transition-all dtc-data"
+              className="px-2 sm:px-3 py-1 text-xs transition-all dtc-data rounded"
               style={{
                 background:
-                  timeframe === tfKey ? 'rgba(207, 123, 53, 0.14)' : 'transparent',
+                  timeframe === tfKey ? 'rgba(255,255,255,0.08)' : 'transparent',
                 color:
-                  timeframe === tfKey ? 'var(--accent-strong)' : 'var(--text-secondary)',
-                border:
-                  timeframe === tfKey
-                    ? '1px solid rgba(207, 123, 53, 0.28)'
-                    : '1px solid transparent',
+                  timeframe === tfKey ? 'var(--text-primary)' : 'var(--text-muted)',
+                border: 'none',
                 cursor: phase !== 'setup' ? 'default' : 'pointer',
                 opacity: phase !== 'setup' && timeframe !== tfKey ? 0.3 : 1,
                 fontWeight: timeframe === tfKey ? 600 : 400,
@@ -663,14 +658,14 @@ export function Game() {
           ))}
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <div className="flex items-center gap-1 sm:gap-2">
-            <span className="hidden sm:inline text-xs dtc-eyebrow" style={{ color: 'var(--text-muted)' }}>Stake</span>
+            <span className="hidden sm:inline text-[10px] dtc-eyebrow" style={{ color: 'var(--text-muted)' }}>Stake</span>
             <div
-              className="flex items-center overflow-hidden"
+              className="flex items-center overflow-hidden rounded"
               style={{
-                border: '1px solid rgba(58, 70, 59, 0.82)',
-                background: 'rgba(14, 18, 15, 0.92)',
+                border: '1px solid var(--border)',
+                background: 'rgba(255,255,255,0.03)',
               }}
             >
               <button
@@ -679,7 +674,7 @@ export function Game() {
                 className="px-1.5 py-0.5 text-xs dtc-data"
                 style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
               >-</button>
-              <span className="px-2 py-0.5 text-xs dtc-data" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', minWidth: '58px', textAlign: 'center' }}>
+              <span className="px-2 py-0.5 text-xs dtc-data" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', minWidth: '48px', textAlign: 'center' }}>
                 ${stake}
               </span>
               <button
@@ -691,27 +686,22 @@ export function Game() {
             </div>
           </div>
           {phase === 'setup' && (
-            <span className="hidden sm:inline text-xs dtc-data" style={{ color: 'var(--text-secondary)' }}>
-              Max payout: <span style={{ color: 'var(--teal)' }}>${maxPayout.toLocaleString()}</span>
+            <span className="hidden md:inline text-[11px] dtc-data" style={{ color: 'var(--text-muted)' }}>
+              Max <span style={{ color: 'var(--teal)' }}>${maxPayout.toLocaleString()}</span>
             </span>
           )}
-          <div className="hidden sm:block text-xs dtc-data" style={{ color: 'var(--text-secondary)' }}>
-            <span style={{ color: 'var(--text-muted)' }}>Local round log:</span>{' '}
-            <span style={{ color: 'var(--text-primary)' }}>{roundLogCount}</span>
-          </div>
         </div>
       </div>
 
       <div
-        className="shrink-0 px-2 sm:px-4 py-2 flex items-center justify-between gap-3 overflow-x-auto"
+        className="shrink-0 px-2 sm:px-4 py-1.5 flex items-center justify-between gap-3 overflow-x-auto"
         style={{
-          borderBottom: '1px solid rgba(48, 58, 49, 0.72)',
-          background: 'rgba(11, 15, 12, 0.76)',
-          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid var(--border)',
+          background: 'var(--bg-primary)',
         }}
       >
         <div className="flex items-center gap-2 min-w-max">
-          <PhaseStep index={1} title="Brief" active={phaseStep === 0} complete={phaseStep > 0} />
+          <PhaseStep index={1} title="Setup" active={phaseStep === 0} complete={phaseStep > 0} />
           <PhaseStep index={2} title="Draw" active={phaseStep === 1} complete={phaseStep > 1} />
           <PhaseStep index={3} title="Reveal" active={phaseStep === 2} complete={false} />
         </div>
@@ -727,102 +717,76 @@ export function Game() {
         {/* Setup overlay */}
         {phase === 'setup' && !locked && (
           <div
-            className="absolute inset-0 z-20 animate-fade-in"
+            className="absolute inset-0 z-20 animate-fade-in flex items-center justify-center"
             style={{
-              background:
-                'linear-gradient(90deg, rgba(8, 11, 9, 0.82) 0%, rgba(8, 11, 9, 0.58) 34%, rgba(8, 11, 9, 0.18) 72%, rgba(8, 11, 9, 0.06) 100%)',
-              backdropFilter: 'blur(1.5px)',
+              background: 'rgba(9, 9, 11, 0.75)',
+              backdropFilter: 'blur(2px)',
             }}
           >
-            <div className="h-full flex items-center px-4 sm:px-8 lg:px-12">
+            <div
+              className="dtc-panel max-w-[440px] w-full mx-4 p-5"
+              style={{ background: 'var(--bg-secondary)' }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  Draw the next {TIMEFRAMES[timeframe].label}
+                </h1>
+                <span className="dtc-chip" style={{ color: 'var(--green)', background: 'var(--green-soft)', borderColor: 'rgba(34,197,94,0.15)' }}>
+                  Sandbox
+                </span>
+              </div>
+
               <div
-                className="dtc-panel max-w-[820px] w-full p-5 sm:p-6 lg:p-7"
-                style={{
-                  background:
-                    'linear-gradient(180deg, rgba(15, 19, 16, 0.96), rgba(12, 16, 13, 0.94))',
-                }}
+                className="grid grid-cols-4 gap-px rounded overflow-hidden mb-4"
+                style={{ background: 'var(--border)', border: '1px solid var(--border)' }}
               >
-                <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
-                  <div>
-                    <div className="dtc-eyebrow mb-2">Round Briefing</div>
-                    <h1 className="dtc-display text-4xl sm:text-5xl font-semibold leading-none mb-3" style={{ color: 'var(--text-primary)' }}>
-                      Draw the next {TIMEFRAMES[timeframe].label}
-                    </h1>
-                    <p className="text-sm sm:text-[15px] mb-4" style={{ color: 'var(--text-secondary)', lineHeight: 1.75 }}>
-                      Freeze the tape at the anchor, sketch the path you believe BTC will take, and let the engine judge direction, level control, turning points, and pace.
-                    </p>
-                    <div className="mb-4 inline-flex items-center gap-2 px-3 py-1.5 dtc-chip" style={{ background: 'rgba(17, 22, 18, 0.94)' }}>
-                      <span style={{ color: 'var(--green)' }}>Sandbox only</span>
-                      <span style={{ color: 'var(--text-muted)' }}>No real money at risk</span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
-                      <MetricTile label="Structure" value={`${drawingRules.controlPoints} control points`} />
-                      <MetricTile label="Min Spacing" value={`${Math.round(drawingRules.minSpacingSeconds / 60)} min`} />
-                      <MetricTile label="Slope Cap" value={`${(drawingRules.maxSlopeLogMovePerHour * 100).toFixed(1)}% / hr`} />
-                      <MetricTile label="Stake" value={`$${stake}`} />
-                    </div>
-
-                    <div className="mb-4 text-xs dtc-data" style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-                      {roundLogCount > 0
-                        ? `${roundLogCount} scored sandbox rounds are already saved locally for replay, comparison, and seed sharing.`
-                        : 'Completed rounds are saved locally for replay, comparison, and seed sharing.'}
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                      <button
-                        onClick={handleLockStart}
-                        className="px-6 py-3 text-sm font-semibold transition-colors dtc-button-primary"
-                      >
-                        Start Round
-                      </button>
-                      <div className="text-xs" style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-                        Freehand is captured first, then normalized to {drawingRules.controlPoints} valid control points before scoring and payout.
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="dtc-panel-subtle p-4">
-                      <div className="dtc-eyebrow mb-2">What Counts</div>
-                      <div className="space-y-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        <div className="flex items-center justify-between gap-4">
-                          <span>Direction</span>
-                          <span className="dtc-data" style={{ color: 'var(--text-primary)' }}>40 pts</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-4">
-                          <span>Magnitude</span>
-                          <span className="dtc-data" style={{ color: 'var(--text-primary)' }}>30 pts</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-4">
-                          <span>Turning points</span>
-                          <span className="dtc-data" style={{ color: 'var(--text-primary)' }}>20 pts</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-4">
-                          <span>Volatility regime</span>
-                          <span className="dtc-data" style={{ color: 'var(--text-primary)' }}>10 pts</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="dtc-panel-subtle p-4">
-                      <div className="dtc-eyebrow mb-2">Quick Start</div>
-                      <div className="space-y-2 text-xs" style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-                        <div>1. Start the round and draw inside the future zone that opens to the right of the anchor.</div>
-                        <div>2. Submit once the line spans the future zone. Sandbox settlement is instant.</div>
-                        <div>3. If you want TA tools, turn them on later. They are optional for a first round.</div>
-                      </div>
-                    </div>
-                  </div>
+                <div className="p-2.5 text-center" style={{ background: 'var(--bg-primary)' }}>
+                  <div className="dtc-eyebrow mb-1">Points</div>
+                  <div className="dtc-data text-xs" style={{ color: 'var(--text-primary)' }}>{drawingRules.controlPoints}</div>
+                </div>
+                <div className="p-2.5 text-center" style={{ background: 'var(--bg-primary)' }}>
+                  <div className="dtc-eyebrow mb-1">Spacing</div>
+                  <div className="dtc-data text-xs" style={{ color: 'var(--text-primary)' }}>{Math.round(drawingRules.minSpacingSeconds / 60)}m</div>
+                </div>
+                <div className="p-2.5 text-center" style={{ background: 'var(--bg-primary)' }}>
+                  <div className="dtc-eyebrow mb-1">Slope Cap</div>
+                  <div className="dtc-data text-xs" style={{ color: 'var(--text-primary)' }}>{(drawingRules.maxSlopeLogMovePerHour * 100).toFixed(1)}%/h</div>
+                </div>
+                <div className="p-2.5 text-center" style={{ background: 'var(--bg-primary)' }}>
+                  <div className="dtc-eyebrow mb-1">Stake</div>
+                  <div className="dtc-data text-xs" style={{ color: 'var(--text-primary)' }}>${stake}</div>
                 </div>
               </div>
+
+              <div className="flex items-center gap-3 text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+                <span>Direction 40</span>
+                <span style={{ color: 'var(--border-strong)' }}>|</span>
+                <span>Magnitude 30</span>
+                <span style={{ color: 'var(--border-strong)' }}>|</span>
+                <span>Turns 20</span>
+                <span style={{ color: 'var(--border-strong)' }}>|</span>
+                <span>Vol 10</span>
+              </div>
+
+              <button
+                onClick={handleLockStart}
+                className="w-full px-5 py-2.5 text-sm font-semibold dtc-button-primary"
+              >
+                Start Round
+              </button>
+
+              {roundLogCount > 0 && (
+                <div className="mt-3 text-xs dtc-data text-center" style={{ color: 'var(--text-muted)' }}>
+                  {roundLogCount} rounds in local journal
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {loading && (
           <div
-            className="absolute inset-0 z-20 p-6"
+            className="absolute inset-0 z-20 p-4"
             style={{ background: 'var(--bg-primary)' }}
           >
             <div className="h-full flex flex-col gap-3">
@@ -840,7 +804,7 @@ export function Game() {
         {error && (
           <div
             className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-20"
-            style={{ background: 'rgba(8, 11, 9, 0.82)' }}
+            style={{ background: 'rgba(9, 9, 11, 0.85)' }}
           >
             <span className="text-sm" style={{ color: 'var(--red)' }}>{error}</span>
             <button
@@ -855,13 +819,12 @@ export function Game() {
 
         {chartData.length > 0 && !loading && (
           <div
-            className="absolute top-2 right-3 z-10 hidden lg:flex items-center justify-between gap-4 px-4 py-3"
+            className="absolute top-2 right-3 z-10 hidden lg:flex items-center justify-between gap-4 px-3 py-2 rounded-lg"
             style={{
               left: '78px',
-              background: 'rgba(14, 18, 15, 0.84)',
-              border: '1px solid rgba(58, 70, 59, 0.74)',
-              backdropFilter: 'blur(14px)',
-              boxShadow: 'var(--shadow-soft)',
+              background: 'rgba(17, 17, 19, 0.9)',
+              border: '1px solid var(--border)',
+              backdropFilter: 'blur(12px)',
             }}
           >
             <div className="flex items-center gap-5">
@@ -922,27 +885,24 @@ export function Game() {
               <span
                 className="dtc-chip"
                 style={{
-                  background: phase === 'drawing' ? 'rgba(207, 123, 53, 0.12)' : 'rgba(72, 183, 132, 0.12)',
-                  color: phase === 'drawing' ? 'var(--accent-strong)' : 'var(--green)',
-                  borderColor: phase === 'drawing' ? 'rgba(207, 123, 53, 0.24)' : 'rgba(72, 183, 132, 0.24)',
+                  background: phase === 'drawing' ? 'var(--accent-soft)' : 'var(--green-soft)',
+                  color: phase === 'drawing' ? 'var(--accent)' : 'var(--green)',
+                  borderColor: phase === 'drawing' ? 'rgba(91,141,239,0.2)' : 'rgba(34,197,94,0.15)',
                 }}
               >
-                {phase === 'setup' ? 'Preview' : phase === 'drawing' ? 'Future zone open' : 'Reveal mode'}
+                {phase === 'setup' ? 'Preview' : phase === 'drawing' ? 'Drawing' : 'Reveal'}
               </span>
               <button
                 type="button"
                 onClick={handleToggleAdvancedTools}
                 className="dtc-chip"
                 style={{
-                  background: 'rgba(17, 22, 18, 0.9)',
-                  color: 'var(--text-secondary)',
-                  borderColor: 'rgba(58, 70, 59, 0.72)',
                   cursor: phase === 'submitted' ? 'default' : 'pointer',
-                  opacity: phase === 'submitted' ? 0.72 : 1,
+                  opacity: phase === 'submitted' ? 0.5 : 1,
                 }}
                 disabled={phase === 'submitted'}
               >
-                {showAdvancedTools ? `${activeToolLabel} tools on` : 'Tools hidden'}
+                {showAdvancedTools ? `${activeToolLabel}` : 'TA Tools'}
               </button>
             </div>
           </div>
@@ -1000,45 +960,43 @@ export function Game() {
               <button
                 type="button"
                 onClick={() => setDrawGuideCollapsed(false)}
-                className="dtc-panel px-3 py-2 text-xs font-medium"
+                className="dtc-panel px-2.5 py-1.5 text-[11px]"
                 style={{
-                  background: 'rgba(14, 18, 15, 0.94)',
-                  backdropFilter: 'blur(12px)',
-                  color: 'var(--text-secondary)',
+                  background: 'rgba(17, 17, 19, 0.9)',
+                  backdropFilter: 'blur(8px)',
+                  color: 'var(--text-muted)',
                 }}
               >
-                Show draw guide
+                Guide
               </button>
             ) : (
               <div
-                className="dtc-panel p-4"
+                className="dtc-panel p-3"
                 style={{
-                  background: 'rgba(14, 18, 15, 0.94)',
-                  backdropFilter: 'blur(12px)',
+                  background: 'rgba(17, 17, 19, 0.95)',
+                  backdropFilter: 'blur(8px)',
                 }}
               >
                 <div className="flex items-center justify-between gap-3 mb-2">
-                  <div className="dtc-eyebrow">Draw Guide</div>
+                  <div className="dtc-eyebrow">Guide</div>
                   <button
                     type="button"
                     onClick={() => setDrawGuideCollapsed(true)}
-                    className="text-[11px] dtc-data"
-                    style={{ color: 'var(--text-secondary)' }}
+                    className="text-[10px] dtc-data"
+                    style={{ color: 'var(--text-muted)' }}
                   >
                     Hide
                   </button>
                 </div>
-                <div className="space-y-2 text-xs" style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-                  <div>Draw inside the future zone. The bright right-side marker shows exactly where the round ends.</div>
-                  <div>Drag the historical side of the chart to inspect more candles. The future band stays reserved for drawing.</div>
-                  <div>{showAdvancedTools ? <>Use TA tools for context, then switch back to <span style={{ color: 'var(--text-primary)' }}>Cursor</span> to keep drawing.</> : 'Keep advanced tools hidden until you want more chart context. First-time users usually do not need them.'}</div>
-                  <div>The engine will normalize your stroke into {drawingRules.controlPoints} valid control points on submit.</div>
+                <div className="space-y-1.5 text-[11px]" style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                  <div>Draw in the future zone (right of anchor).</div>
+                  <div>Normalized to {drawingRules.controlPoints} control points on submit.</div>
                 </div>
-                <div className="mt-3 pt-3 flex flex-wrap gap-2 text-[11px]" style={{ borderTop: '1px solid var(--border)' }}>
+                <div className="mt-2 pt-2 flex flex-wrap gap-2 text-[10px]" style={{ borderTop: '1px solid var(--border)' }}>
                   <span className="dtc-kbd">Enter</span>
-                  <span style={{ color: 'var(--text-secondary)' }}>submit</span>
+                  <span style={{ color: 'var(--text-muted)' }}>submit</span>
                   <span className="dtc-kbd">Esc</span>
-                  <span style={{ color: 'var(--text-secondary)' }}>clear / exit tool</span>
+                  <span style={{ color: 'var(--text-muted)' }}>clear</span>
                 </div>
               </div>
             )}
@@ -1051,7 +1009,7 @@ export function Game() {
             <div
               className="dtc-panel p-3 sm:p-4 relative"
               style={{
-                background: 'rgba(14, 18, 15, 0.96)',
+                background: 'rgba(17, 17, 19, 0.96)',
                 backdropFilter: 'blur(8px)',
               }}
             >
@@ -1096,11 +1054,11 @@ export function Game() {
               )}
               <div className="hidden sm:flex mt-3 pt-2 flex-wrap items-center gap-3 text-xs" style={{ borderTop: '1px solid var(--border)' }}>
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-0.5 rounded" style={{ background: 'var(--accent-strong)' }} />
+                  <span className="inline-block w-3 h-0.5 rounded" style={{ background: 'var(--accent)' }} />
                   <span style={{ color: 'var(--text-secondary)' }}>Drawing</span>
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-0.5 rounded" style={{ background: 'rgba(233, 165, 106, 0.36)', borderBottom: '1px dotted rgba(233, 165, 106, 0.56)' }} />
+                  <span className="inline-block w-3 h-0.5 rounded" style={{ background: 'rgba(212, 168, 92, 0.36)', borderBottom: '1px dotted rgba(212, 168, 92, 0.56)' }} />
                   <span style={{ color: 'var(--text-secondary)' }}>Resampled</span>
                 </span>
                 <span className="flex items-center gap-1.5">
@@ -1113,7 +1071,7 @@ export function Game() {
               <div
                 className="dtc-panel p-3 sm:p-4 max-w-[340px]"
                 style={{
-                  background: 'rgba(14, 18, 15, 0.96)',
+                  background: 'rgba(17, 17, 19, 0.96)',
                   backdropFilter: 'blur(8px)',
                 }}
               >
@@ -1121,9 +1079,9 @@ export function Game() {
                 <div
                   className="inline-flex items-center px-2 py-1 text-[11px] dtc-data mb-3"
                   style={{
-                    background: 'rgba(207, 123, 53, 0.12)',
-                    color: 'var(--accent-strong)',
-                    border: '1px solid rgba(207, 123, 53, 0.24)',
+                    background: 'var(--accent-soft)',
+                    color: 'var(--accent)',
+                    border: '1px solid rgba(212, 168, 92, 0.2)',
                   }}
                 >
                   {roundAssessment.band}
@@ -1140,8 +1098,8 @@ export function Game() {
                       key={insight.title}
                       className="dtc-panel-subtle p-2.5"
                       style={{
-                        background: 'rgba(18, 24, 19, 0.78)',
-                        border: '1px solid rgba(58, 70, 59, 0.44)',
+                        background: 'rgba(255,255,255,0.02)',
+                        border: '1px solid var(--border)',
                       }}
                     >
                       <div className="flex items-center gap-2 mb-1">
@@ -1193,11 +1151,10 @@ export function Game() {
 
       {/* Bottom bar */}
       <footer
-        className="flex items-center justify-between gap-3 px-4 py-2 min-h-14 shrink-0 overflow-hidden"
+        className="flex items-center justify-between gap-3 px-3 py-1.5 min-h-11 shrink-0 overflow-hidden"
         style={{
-          borderTop: '1px solid rgba(58, 70, 59, 0.88)',
-          background:
-            'linear-gradient(180deg, rgba(15, 19, 16, 0.96), rgba(18, 22, 18, 0.92))',
+          borderTop: '1px solid var(--border)',
+          background: 'var(--bg-secondary)',
         }}
       >
         <div className="flex items-center gap-2 shrink-0 max-w-full overflow-x-auto">
@@ -1346,7 +1303,7 @@ function ScoreRow({ label, value, max }: { label: string; value: number; max: nu
           {value.toFixed(1)}<span style={{ color: 'var(--text-secondary)' }}> / {max}</span>
         </span>
       </div>
-      <div className="h-1 overflow-hidden" style={{ background: 'rgba(36, 43, 37, 0.92)' }}>
+      <div className="h-1 overflow-hidden rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
         <div className="h-full transition-all" style={{
           width: `${pct}%`,
           background: pct > 70 ? 'var(--green)' : pct > 40 ? 'var(--accent)' : 'var(--red)',
@@ -1380,31 +1337,24 @@ function PhaseStep({
 }) {
   return (
     <div
-      className="flex items-center gap-2 px-2.5 py-1.5"
+      className="flex items-center gap-1.5 px-2 py-1 rounded"
       style={{
-        background: active ? 'rgba(207, 123, 53, 0.12)' : 'rgba(16, 21, 18, 0.76)',
-        border: `1px solid ${
-          active
-            ? 'rgba(207, 123, 53, 0.28)'
-            : complete
-              ? 'rgba(72, 183, 132, 0.24)'
-              : 'rgba(58, 70, 59, 0.5)'
-        }`,
-        borderRadius: 999,
+        background: active ? 'rgba(255,255,255,0.06)' : 'transparent',
+        border: `1px solid ${active ? 'var(--border-strong)' : 'transparent'}`,
       }}
     >
       <span
-        className="dtc-data text-[11px]"
+        className="dtc-data text-[10px]"
         style={{
-          color: complete ? 'var(--green)' : active ? 'var(--accent-strong)' : 'var(--text-muted)',
+          color: complete ? 'var(--green)' : active ? 'var(--accent)' : 'var(--text-muted)',
         }}
       >
-        {String(index).padStart(2, '0')}
+        {index}
       </span>
       <span
-        className="text-xs"
+        className="text-[11px]"
         style={{
-          color: active ? 'var(--text-primary)' : complete ? 'var(--text-primary)' : 'var(--text-secondary)',
+          color: active ? 'var(--text-primary)' : complete ? 'var(--text-secondary)' : 'var(--text-muted)',
         }}
       >
         {title}

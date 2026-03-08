@@ -40,7 +40,7 @@ async function fetchCandles(interval: string, limit: number): Promise<CandleData
 let cachedRawData: number[][] | null = null;
 let cachedMaxHourlyLogMove: number | null = null;
 
-async function loadRawData(): Promise<number[][]> {
+export async function loadRawData(): Promise<number[][]> {
   if (cachedRawData) return cachedRawData;
   const response = await fetch('/btc_1m_candles.json');
   if (!response.ok) throw new Error(`Failed to load price data: ${response.status}`);
@@ -71,7 +71,7 @@ async function loadMaxHourlyLogMove(): Promise<number> {
   return cachedMaxHourlyLogMove;
 }
 
-function seedToUnitFloat(seed: number): number {
+export function seedToUnitFloat(seed: number): number {
   let value = seed >>> 0;
   value = (value + 0x6d2b79f5) >>> 0;
   let mixed = Math.imul(value ^ (value >>> 15), value | 1);
@@ -79,7 +79,7 @@ function seedToUnitFloat(seed: number): number {
   return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
 }
 
-function buildSyntheticCandles(
+export function buildSyntheticCandles(
   rawSlice: number[][],
   step: number,
   initialOpen?: number,

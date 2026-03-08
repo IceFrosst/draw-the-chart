@@ -2,66 +2,57 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 const NAV_LINKS = [
-  { to: '/play', label: 'Play' },
-  { to: '/whitepaper', label: 'Whitepaper' },
-  { to: '/faq', label: 'How It Works' },
+  { to: '/play', label: 'Trade' },
   { to: '/leaderboard', label: 'Journal' },
+  { to: '/faq', label: 'Docs' },
+  { to: '/whitepaper', label: 'Paper' },
 ];
 
 export function Navbar() {
   const location = useLocation();
-  const [showStatusModal, setShowStatusModal] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <>
       <nav
-        className="fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-4 sm:px-6"
+        className="fixed top-0 left-0 right-0 z-50 h-12 flex items-center justify-between px-4"
         style={{
-          background: 'rgba(9, 12, 10, 0.9)',
-          backdropFilter: 'blur(16px)',
-          borderBottom: '1px solid rgba(55, 64, 55, 0.72)',
+          background: 'rgba(9, 9, 11, 0.85)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid var(--border)',
         }}
       >
         <div className="flex items-center gap-6">
-          <Link to="/" className="flex items-center gap-3 no-underline">
-            <div className="flex flex-col leading-none">
-              <span
-                className="dtc-display text-[22px] font-semibold"
-                style={{ color: 'var(--text-primary)' }}
-              >
-                DTC
-              </span>
-              <span className="dtc-eyebrow" style={{ letterSpacing: '0.22em' }}>
-                Draw The Chart
-              </span>
-            </div>
+          <Link to="/" className="flex items-center gap-2 no-underline">
+            <span
+              className="text-[15px] font-bold tracking-tight"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              DTC
+            </span>
+            <span
+              className="text-[10px] font-medium tracking-[0.08em] uppercase hidden sm:inline"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Draw The Chart
+            </span>
           </Link>
 
-          <div className="hidden sm:flex items-center gap-5">
+          <div className="hidden sm:flex items-center gap-1">
             {NAV_LINKS.map((link) => {
               const active = location.pathname === link.to;
               return (
                 <Link
                   key={link.to}
                   to={link.to}
-                  className="relative py-4 text-sm no-underline transition-colors"
+                  className="px-3 py-1.5 text-[13px] no-underline rounded"
                   style={{
-                    color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
-                    fontWeight: active ? 600 : 500,
+                    color: active ? 'var(--text-primary)' : 'var(--text-muted)',
+                    fontWeight: active ? 600 : 400,
+                    background: active ? 'rgba(255,255,255,0.05)' : 'transparent',
                   }}
                 >
                   {link.label}
-                  <span
-                    style={{
-                      position: 'absolute',
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      height: 2,
-                      background: active ? 'var(--accent)' : 'transparent',
-                    }}
-                  />
                 </Link>
               );
             })}
@@ -69,37 +60,38 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowStatusModal(true)}
-            className="hidden sm:block px-4 py-2 text-sm font-medium transition-colors"
+          <span
+            className="text-[10px] font-medium tracking-[0.06em] uppercase px-2 py-1 rounded hidden sm:inline-flex items-center gap-1.5"
+            title="Using historical data — no real money"
             style={{
-              background: 'rgba(17, 22, 18, 0.9)',
-              color: 'var(--text-primary)',
-              border: '1px solid var(--border-strong)',
+              color: 'var(--green)',
+              background: 'var(--green-soft)',
+              border: '1px solid rgba(34, 197, 94, 0.15)',
             }}
           >
-            Launch Status
-          </button>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--green)' }} />
+            Sandbox
+          </span>
 
           <button
             onClick={() => setMobileMenuOpen((open) => !open)}
-            className="sm:hidden flex flex-col gap-1 p-2"
+            className="sm:hidden flex flex-col gap-[3px] p-2"
             aria-label="Menu"
           >
-            <span className="block w-5 h-[1.5px]" style={{ background: 'var(--text-secondary)' }} />
-            <span className="block w-5 h-[1.5px]" style={{ background: 'var(--text-secondary)' }} />
-            <span className="block w-5 h-[1.5px]" style={{ background: 'var(--text-secondary)' }} />
+            <span className="block w-4 h-[1.5px]" style={{ background: 'var(--text-secondary)' }} />
+            <span className="block w-4 h-[1.5px]" style={{ background: 'var(--text-secondary)' }} />
+            <span className="block w-4 h-[1.5px]" style={{ background: 'var(--text-secondary)' }} />
           </button>
         </div>
       </nav>
 
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-[60] pt-14"
-          style={{ background: 'rgba(9, 12, 10, 0.98)', backdropFilter: 'blur(12px)' }}
+          className="fixed inset-0 z-[60] pt-12"
+          style={{ background: '#09090b' }}
           onClick={() => setMobileMenuOpen(false)}
         >
-          <div className="flex flex-col p-4 gap-1">
+          <div className="flex flex-col p-3 gap-0.5">
             {NAV_LINKS.map((link) => {
               const active = location.pathname === link.to;
               return (
@@ -107,58 +99,17 @@ export function Navbar() {
                   key={link.to}
                   to={link.to}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="px-4 py-3 text-base no-underline"
+                  className="px-4 py-3 text-sm no-underline rounded"
                   style={{
                     color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
-                    borderLeft: active ? '2px solid var(--accent)' : '2px solid transparent',
-                    background: active ? 'rgba(26, 31, 27, 0.72)' : 'transparent',
+                    background: active ? 'rgba(255,255,255,0.05)' : 'transparent',
+                    fontWeight: active ? 600 : 400,
                   }}
                 >
                   {link.label}
                 </Link>
               );
             })}
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                setShowStatusModal(true);
-              }}
-              className="mt-3 px-4 py-3 text-base text-left"
-              style={{
-                color: 'var(--text-primary)',
-                background: 'rgba(17, 22, 18, 0.9)',
-                border: '1px solid var(--border-strong)',
-              }}
-            >
-              Launch Status
-            </button>
-          </div>
-        </div>
-      )}
-
-      {showStatusModal && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center"
-          style={{ background: 'rgba(0, 0, 0, 0.66)', backdropFilter: 'blur(4px)' }}
-          onClick={() => setShowStatusModal(false)}
-        >
-          <div
-            className="max-w-sm mx-4 p-8 text-center dtc-panel"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="dtc-eyebrow mb-3">Status</div>
-            <h3 className="dtc-display text-3xl font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>
-              Sandbox-First
-            </h3>
-            <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-              This build is focused on drawing feel, scoring, replayability, and fairness tooling. Wallets, live bankroll-backed rounds, and settlement plumbing are intentionally not active yet.
-            </p>
-            <button
-              onClick={() => setShowStatusModal(false)}
-              className="px-6 py-2 text-sm font-semibold dtc-button-primary"
-            >
-              Close
-            </button>
           </div>
         </div>
       )}

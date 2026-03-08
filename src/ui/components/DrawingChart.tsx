@@ -81,20 +81,20 @@ const FUTURE_OFFSET_MIN = 8;
 const FUTURE_PADDING_MULTIPLIER = 0.16;
 const HISTORY_TO_FUTURE_RATIO = 1.32;
 const PANE_CLIP_ID = 'dtc-chart-pane-clip';
-const CHART_BG = '#0c100d';
-const CHART_PANEL = '#171d18';
-const CHART_PANEL_SOFT = '#202821';
-const GRID_COLOR = 'rgba(81, 92, 79, 0.26)';
-const GRID_SOFT = 'rgba(81, 92, 79, 0.18)';
-const TEXT_COLOR = '#80897c';
-const TEXT_MUTED = 'rgba(143, 150, 137, 0.92)';
-const ACCENT = '#cf7b35';
-const ACCENT_GLOW = 'rgba(207, 123, 53, 0.22)';
-const ACCENT_STRONG = '#e9a56a';
+const CHART_BG = '#0d0d0f';
+const CHART_PANEL = '#111113';
+const CHART_PANEL_SOFT = '#18181b';
+const GRID_COLOR = 'rgba(255, 255, 255, 0.04)';
+const GRID_SOFT = 'rgba(255, 255, 255, 0.03)';
+const TEXT_COLOR = '#52525b';
+const TEXT_MUTED = 'rgba(161, 161, 170, 0.8)';
+const ACCENT = '#d4a85c';
+const ACCENT_GLOW = 'rgba(212, 168, 92, 0.18)';
+const ACCENT_STRONG = '#d4a85c';
 const ACTUAL = '#67c1b4';
-const ACTUAL_GLOW = 'rgba(103, 193, 180, 0.18)';
-const UP_COLOR = '#48b784';
-const DOWN_COLOR = '#d86858';
+const ACTUAL_GLOW = 'rgba(103, 193, 180, 0.15)';
+const UP_COLOR = '#22c55e';
+const DOWN_COLOR = '#ef4444';
 
 class ChartErrorBoundary extends Component<
   { children: ReactNode },
@@ -680,7 +680,7 @@ function DrawingChartInner({
       lastValueVisible: true,
       priceLineVisible: true,
       priceLineStyle: LineStyle.Dotted,
-      priceLineColor: 'rgba(207, 123, 53, 0.28)',
+      priceLineColor: 'rgba(212, 168, 92, 0.28)',
     });
 
     historySeries.setData(
@@ -1274,9 +1274,9 @@ function DrawingChartInner({
           <>
             <defs>
               <linearGradient id="future-zone-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="rgba(207, 123, 53, 0.2)" />
-                <stop offset="35%" stopColor="rgba(207, 123, 53, 0.11)" />
-                <stop offset="100%" stopColor="rgba(207, 123, 53, 0.03)" />
+                <stop offset="0%" stopColor="rgba(212, 168, 92, 0.16)" />
+                <stop offset="35%" stopColor="rgba(212, 168, 92, 0.08)" />
+                <stop offset="100%" stopColor="rgba(212, 168, 92, 0.02)" />
               </linearGradient>
               <clipPath id={PANE_CLIP_ID}>
                 <rect
@@ -1307,7 +1307,7 @@ function DrawingChartInner({
               x2={futureEndX}
               y1={futureGradientY}
               y2={futureGradientY + paneMetrics.height}
-              stroke="rgba(233, 165, 106, 0.58)"
+              stroke="rgba(212, 168, 92, 0.5)"
               strokeDasharray="6 6"
             />
             <text
@@ -1326,8 +1326,8 @@ function DrawingChartInner({
               width="104"
               height="20"
               rx="10"
-              fill="rgba(12, 16, 13, 0.94)"
-              stroke="rgba(233, 165, 106, 0.24)"
+              fill="rgba(17, 17, 19, 0.94)"
+              stroke="rgba(212, 168, 92, 0.2)"
             />
             <text
               x={futureEndX - 68}
@@ -1370,7 +1370,7 @@ function DrawingChartInner({
             <path
               d={makePath(ghostPoints)}
               fill="none"
-              stroke="rgba(233, 165, 106, 0.64)"
+              stroke="rgba(212, 168, 92, 0.55)"
               strokeWidth="2.2"
               strokeDasharray="6 6"
               strokeLinecap="round"
@@ -1426,7 +1426,7 @@ function DrawingChartInner({
             <path
               d={makePath(resampledPoints)}
               fill="none"
-              stroke="rgba(233, 165, 106, 0.48)"
+              stroke="rgba(212, 168, 92, 0.42)"
               strokeWidth="2"
               strokeDasharray="5 5"
               strokeLinecap="round"
@@ -1484,11 +1484,11 @@ function DrawingChartInner({
             <rect
               x={anchorPoint.x + 16}
               y={futureGradientY + 8}
-              width="244"
+              width="180"
               height="24"
-              rx="11"
-              fill="rgba(12, 16, 13, 0.92)"
-              stroke="rgba(207, 123, 53, 0.24)"
+              rx="4"
+              fill="rgba(17, 17, 19, 0.92)"
+              stroke="rgba(212, 168, 92, 0.2)"
             />
             <text
               x={anchorPoint.x + 28}
@@ -1498,7 +1498,7 @@ function DrawingChartInner({
               fontWeight="700"
               letterSpacing="0.8"
             >
-              DRAW INSIDE THE FUTURE ZONE TO PULL FROM THE ANCHOR
+              DRAW IN THE FUTURE ZONE
             </text>
           </>
         )}

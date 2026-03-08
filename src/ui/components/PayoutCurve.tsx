@@ -59,8 +59,7 @@ export function PayoutCurve({ currentScore, config = DEFAULT_PAYOUT_CONFIG }: Pa
       className="dtc-panel p-4"
       style={{
         minWidth: '320px',
-        background:
-          'linear-gradient(180deg, rgba(14, 18, 15, 0.96), rgba(12, 16, 13, 0.98))',
+        background: 'rgba(17, 17, 19, 0.96)',
       }}
     >
       <div className="dtc-eyebrow mb-1">Multiplier Surface</div>
@@ -75,7 +74,7 @@ export function PayoutCurve({ currentScore, config = DEFAULT_PAYOUT_CONFIG }: Pa
         </div>
         <div className="dtc-chip">
           <span>Break-even</span>
-          <span className="dtc-data" style={{ color: 'var(--accent-strong)' }}>
+          <span className="dtc-data" style={{ color: 'var(--accent)' }}>
             {(config.breakEvenScore * 100).toFixed(0)}
           </span>
         </div>
@@ -83,12 +82,12 @@ export function PayoutCurve({ currentScore, config = DEFAULT_PAYOUT_CONFIG }: Pa
       <svg width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`}>
         <defs>
           <linearGradient id="refund-zone-fill" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="rgba(216, 104, 88, 0.08)" />
-            <stop offset="100%" stopColor="rgba(216, 104, 88, 0.02)" />
+            <stop offset="0%" stopColor="rgba(239, 68, 68, 0.06)" />
+            <stop offset="100%" stopColor="rgba(239, 68, 68, 0.02)" />
           </linearGradient>
           <linearGradient id="profit-zone-fill" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="rgba(72, 183, 132, 0.05)" />
-            <stop offset="100%" stopColor="rgba(72, 183, 132, 0.12)" />
+            <stop offset="0%" stopColor="rgba(34, 197, 94, 0.04)" />
+            <stop offset="100%" stopColor="rgba(34, 197, 94, 0.08)" />
           </linearGradient>
         </defs>
 
@@ -113,7 +112,7 @@ export function PayoutCurve({ currentScore, config = DEFAULT_PAYOUT_CONFIG }: Pa
             <line
               x1={PAD.left} y1={yScale(v)}
               x2={WIDTH - PAD.right} y2={yScale(v)}
-              stroke="rgba(90, 100, 88, 0.22)" strokeWidth={1}
+              stroke="rgba(255, 255, 255, 0.06)" strokeWidth={1}
             />
             <text x={PAD.left - 4} y={yScale(v) + 4} textAnchor="end"
               fill="var(--text-muted)" fontSize={9} className="dtc-data">{v}x</text>
@@ -128,9 +127,9 @@ export function PayoutCurve({ currentScore, config = DEFAULT_PAYOUT_CONFIG }: Pa
 
         {/* Break-even vertical line */}
         <line x1={beX} y1={PAD.top} x2={beX} y2={HEIGHT - PAD.bottom}
-          stroke="rgba(143, 150, 137, 0.55)" strokeWidth={1} strokeDasharray="3,3" opacity={0.7} />
+          stroke="rgba(255, 255, 255, 0.15)" strokeWidth={1} strokeDasharray="3,3" opacity={0.7} />
         <line x1={PAD.left} y1={beY} x2={WIDTH - PAD.right} y2={beY}
-          stroke="rgba(143, 150, 137, 0.45)" strokeWidth={1} strokeDasharray="3,3" opacity={0.65} />
+          stroke="rgba(255, 255, 255, 0.12)" strokeWidth={1} strokeDasharray="3,3" opacity={0.65} />
 
         <text
           x={(PAD.left + beX) / 2}
@@ -154,16 +153,16 @@ export function PayoutCurve({ currentScore, config = DEFAULT_PAYOUT_CONFIG }: Pa
         </text>
 
         {/* Curve */}
-        <path d={pathD} fill="none" stroke="#e9a56a" strokeWidth={2.4} />
+        <path d={pathD} fill="none" stroke="#d4a85c" strokeWidth={2} />
 
         {/* Current score marker */}
         {markerX !== undefined && markerY !== undefined && markerMult !== undefined && (
           <>
             <line x1={markerX} y1={PAD.top} x2={markerX} y2={HEIGHT - PAD.bottom}
-              stroke={markerMult >= 1 ? '#67c1b4' : '#d86858'} strokeWidth={1} strokeDasharray="2,2" opacity={0.75} />
+              stroke={markerMult >= 1 ? '#67c1b4' : '#ef4444'} strokeWidth={1} strokeDasharray="2,2" opacity={0.75} />
             <circle cx={markerX} cy={markerY} r={4}
-              fill={markerMult >= 1 ? '#67c1b4' : '#d86858'} />
-            <text x={markerX + 6} y={markerY - 6} fill={markerMult >= 1 ? '#67c1b4' : '#d86858'}
+              fill={markerMult >= 1 ? '#67c1b4' : '#ef4444'} />
+            <text x={markerX + 6} y={markerY - 6} fill={markerMult >= 1 ? '#67c1b4' : '#ef4444'}
               fontSize={10} fontWeight="bold" className="dtc-data">{markerMult.toFixed(2)}x</text>
           </>
         )}

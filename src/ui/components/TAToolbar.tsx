@@ -79,25 +79,15 @@ export function TAToolbar({
 }: TAToolbarProps) {
   return (
     <div
-      className="absolute left-3 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-2 px-2 py-3"
+      className="absolute left-2 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-1.5 px-1.5 py-2"
       style={{
-        width: '78px',
-        background:
-          'linear-gradient(180deg, rgba(10, 13, 11, 0.96), rgba(14, 18, 15, 0.92))',
-        border: '1px solid rgba(58, 70, 59, 0.82)',
-        boxShadow: 'var(--shadow-soft)',
-        backdropFilter: 'blur(16px)',
-        borderRadius: '14px',
+        width: '64px',
+        background: 'rgba(17, 17, 19, 0.95)',
+        border: '1px solid var(--border)',
+        backdropFilter: 'blur(12px)',
+        borderRadius: '8px',
       }}
     >
-      <div className="px-1">
-        <div className="dtc-eyebrow" style={{ color: 'var(--text-muted)' }}>
-          Tools
-        </div>
-        <div className="mt-1 text-[11px] dtc-data" style={{ color: 'var(--text-secondary)' }}>
-          {activeTool === 'none' ? 'Cursor' : tools.find((tool) => tool.type === activeTool)?.title ?? 'Tool'}
-        </div>
-      </div>
       {tools.map((tool) => {
         const active = activeTool === tool.type;
         return (
@@ -106,16 +96,11 @@ export function TAToolbar({
             type="button"
             title={tool.title}
             onClick={() => onSelectTool(tool.type)}
-            className="group flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] transition-all"
+            className="flex flex-col items-center justify-center gap-0.5 rounded px-1 py-1.5 text-[9px] transition-all"
             style={{
-              background: active
-                ? 'linear-gradient(180deg, #dfb27d, #cf7b35)'
-                : 'rgba(16, 21, 18, 0.82)',
-              border: active
-                ? '1px solid rgba(255, 214, 176, 0.58)'
-                : '1px solid rgba(58, 70, 59, 0.68)',
-              color: active ? '#120d09' : 'var(--text-secondary)',
-              boxShadow: active ? '0 10px 24px rgba(163, 93, 29, 0.24)' : 'none',
+              background: active ? 'var(--accent)' : 'transparent',
+              border: active ? 'none' : '1px solid transparent',
+              color: active ? '#000' : 'var(--text-muted)',
             }}
           >
             <span className="flex h-4 items-center justify-center">{tool.icon}</span>
@@ -123,27 +108,22 @@ export function TAToolbar({
           </button>
         );
       })}
-      <div className="mx-1 h-px" style={{ background: 'rgba(58, 70, 59, 0.72)' }} />
+      <div className="mx-1 h-px" style={{ background: 'var(--border)' }} />
       <button
         type="button"
         onClick={onClearAll}
         disabled={!hasDrawings}
-        className="rounded-xl px-1 py-2 text-[10px] transition-all"
+        className="rounded px-1 py-1.5 text-[9px] transition-all"
         style={{
-          background: hasDrawings ? 'rgba(63, 16, 22, 0.9)' : 'rgba(15, 21, 34, 0.55)',
-          border: hasDrawings
-            ? '1px solid rgba(216, 104, 88, 0.6)'
-            : '1px solid rgba(58, 70, 59, 0.55)',
-          color: hasDrawings ? '#efb0a6' : 'var(--text-muted)',
-          opacity: hasDrawings ? 1 : 0.6,
+          background: hasDrawings ? 'var(--red-soft)' : 'transparent',
+          border: hasDrawings ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid transparent',
+          color: hasDrawings ? 'var(--red)' : 'var(--text-muted)',
+          opacity: hasDrawings ? 1 : 0.4,
           cursor: hasDrawings ? 'pointer' : 'default',
         }}
       >
-        Clear All
+        Clear
       </button>
-      <div className="px-1 text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>
-        Switch back to Cursor to keep drawing.
-      </div>
     </div>
   );
 }

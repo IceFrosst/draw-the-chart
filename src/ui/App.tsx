@@ -17,6 +17,9 @@ const Leaderboard = lazy(() =>
 const Whitepaper = lazy(() =>
   import('./pages/Whitepaper').then((module) => ({ default: module.Whitepaper })),
 );
+const Validate = lazy(() =>
+  import('./pages/Validate').then((module) => ({ default: module.Validate })),
+);
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Draw The Chart',
@@ -24,6 +27,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/faq': 'How It Works | Draw The Chart',
   '/leaderboard': 'Journal | Draw The Chart',
   '/whitepaper': 'Whitepaper | Draw The Chart',
+  '/validate': 'Validate Scoring | Draw The Chart',
 };
 
 const PAGE_DESCRIPTIONS: Record<string, string> = {
@@ -32,6 +36,7 @@ const PAGE_DESCRIPTIONS: Record<string, string> = {
   '/faq': 'Learn how Draw The Chart scoring, payout logic, sandbox rounds, and fairness model work.',
   '/leaderboard': 'Review locally saved Draw The Chart sandbox rounds, scores, multipliers, and payout outcomes in the round journal.',
   '/whitepaper': 'Read the Draw The Chart product paper covering the thesis, scoring engine, economics, and rollout design.',
+  '/validate': 'Compare prediction pairs side-by-side and validate the DTC scoring algorithm against human judgment.',
 };
 
 function Layout() {
@@ -83,6 +88,7 @@ export function App() {
           <Route path="/faq" element={<FAQ />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/whitepaper" element={<Whitepaper />} />
+          <Route path="/validate" element={<Validate />} />
         </Route>
       </Routes>
     </BrowserRouter>
@@ -95,7 +101,7 @@ function PageSkeleton() {
       className="min-h-screen pt-20 px-4 sm:px-6"
       style={{
         background:
-          'radial-gradient(circle at top left, rgba(207, 123, 53, 0.08), transparent 24%), radial-gradient(circle at bottom right, rgba(72, 183, 132, 0.06), transparent 16%), var(--bg-primary)',
+          'radial-gradient(circle at top left, rgba(212, 168, 92, 0.06), transparent 24%), radial-gradient(circle at bottom right, rgba(72, 183, 132, 0.06), transparent 16%), var(--bg-primary)',
       }}
     >
       <div className="max-w-6xl mx-auto space-y-4">

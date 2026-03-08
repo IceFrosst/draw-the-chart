@@ -35,130 +35,87 @@ export function Leaderboard() {
   const stats = useMemo(() => computeRoundHistoryStats(entries), [entries]);
 
   return (
-    <div
-      className="min-h-screen pt-20 pb-16 px-4 sm:px-6"
-      style={{
-        background:
-          'radial-gradient(circle at top left, rgba(207, 123, 53, 0.12), transparent 24%), radial-gradient(circle at bottom right, rgba(72, 183, 132, 0.08), transparent 16%), var(--bg-primary)',
-      }}
-    >
-      <div className="max-w-5xl mx-auto">
-        <div
-          className="dtc-panel p-7 mb-8"
-          style={{
-            background: 'rgba(14, 18, 15, 0.84)',
-            border: '1px solid rgba(58, 70, 59, 0.72)',
-            boxShadow: 'var(--shadow-soft)',
-            backdropFilter: 'blur(16px)',
-          }}
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="dtc-display text-5xl font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
-                Sandbox Journal
-              </h1>
-              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                Real rounds saved in this browser from the current sandbox build.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <span
-                className="dtc-chip"
-                style={{
-                  background: 'rgba(72, 183, 132, 0.12)',
-                  borderColor: 'rgba(72, 183, 132, 0.3)',
-                  color: 'var(--green)',
-                }}
-              >
-                {entries.length} local rounds
-              </span>
-              <Link
-                to="/whitepaper"
-                className="px-4 py-2 text-sm font-semibold no-underline dtc-button-secondary"
-              >
-                Scoring Model
-              </Link>
+    <div className="min-h-screen pt-12">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+          <div>
+            <h1 className="dtc-display text-2xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
+              Journal
+            </h1>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              {entries.length} sandbox rounds saved locally.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div
+              className="flex items-center gap-0.5 p-0.5 rounded"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}
+            >
+              {(['score', 'payout', 'multiplier'] as SortKey[]).map((key) => (
+                <button
+                  key={key}
+                  onClick={() => setSortBy(key)}
+                  className="px-2.5 py-1 text-[11px] transition-all capitalize dtc-data rounded"
+                  style={{
+                    background: sortBy === key ? 'rgba(255,255,255,0.08)' : 'transparent',
+                    color: sortBy === key ? 'var(--text-primary)' : 'var(--text-muted)',
+                    fontWeight: sortBy === key ? 600 : 400,
+                  }}
+                >
+                  {key}
+                </button>
+              ))}
             </div>
           </div>
         </div>
 
         {entries.length === 0 ? (
-          <div
-            className="dtc-panel p-8 text-center"
-            style={{
-              background: 'rgba(14, 18, 15, 0.84)',
-              border: '1px solid rgba(58, 70, 59, 0.72)',
-            }}
-          >
-            <div className="dtc-eyebrow mb-3">No history yet</div>
-            <h2 className="dtc-display text-4xl font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>
-              Play a sandbox round first.
-            </h2>
-            <p className="text-sm max-w-xl mx-auto mb-6" style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-              Completed rounds are saved locally after settlement. Once you submit a few drawings,
-              this page turns into a real journal of scores, multipliers, payout outcomes, and round links.
-            </p>
-            <Link
-              to="/play"
-              className="inline-flex px-5 py-2.5 text-sm font-semibold no-underline dtc-button-primary"
+          <>
+            <div className="dtc-panel p-8 text-center mb-6">
+              <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
+                No rounds yet
+              </h2>
+              <p className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>
+                This journal tracks every sandbox round you play.
+              </p>
+              <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+                Scores, multipliers, P&L, and performance trends — all saved locally.
+              </p>
+              <Link
+                to="/play"
+                className="inline-flex px-5 py-2.5 text-sm font-semibold no-underline dtc-button-primary"
+              >
+                Start Drawing
+              </Link>
+            </div>
+            <div
+              className="grid grid-cols-2 sm:grid-cols-5 gap-px rounded-lg overflow-hidden"
+              style={{ background: 'var(--border)', border: '1px solid var(--border)' }}
             >
-              Open Sandbox
-            </Link>
-          </div>
+              <StatCell label="Rounds" value="0" />
+              <StatCell label="Avg Score" value="--" />
+              <StatCell label="Avg Mult" value="--" />
+              <StatCell label="Win Rate" value="--" />
+              <StatCell label="Net P&L" value="$0.00" />
+            </div>
+          </>
         ) : (
           <>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                Sorted journal of your recent scored rounds.
-              </p>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs dtc-eyebrow" style={{ color: 'var(--text-muted)' }}>Sort by:</span>
-                  <div
-                    className="flex items-center gap-0.5 p-0.5"
-                    style={{ background: 'rgba(18, 24, 19, 0.78)', border: '1px solid rgba(58, 70, 59, 0.44)' }}
-                  >
-                    {(['score', 'payout', 'multiplier'] as SortKey[]).map((key) => (
-                      <button
-                        key={key}
-                        onClick={() => setSortBy(key)}
-                        className="px-3 py-1 text-xs transition-all capitalize"
-                        style={{
-                          background: sortBy === key ? 'var(--accent)' : 'transparent',
-                          color: sortBy === key ? '#120d09' : 'var(--text-secondary)',
-                          fontWeight: sortBy === key ? 600 : 400,
-                        }}
-                      >
-                        {key}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <span className="hidden sm:inline text-xs dtc-data" style={{ color: 'var(--text-muted)' }}>
-                  Local browser storage
-                </span>
-              </div>
-            </div>
-
             <div
-              className="dtc-panel overflow-x-auto"
-              style={{
-                background: 'rgba(14, 18, 15, 0.84)',
-                border: '1px solid rgba(58, 70, 59, 0.72)',
-              }}
+              className="dtc-panel overflow-x-auto mb-6"
             >
-              <table className="w-full text-sm" style={{ borderCollapse: 'collapse', minWidth: '760px' }}>
+              <table className="w-full text-xs" style={{ borderCollapse: 'collapse', minWidth: '700px' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(58, 70, 59, 0.52)' }}>
-                    <th className="text-left px-3 sm:px-5 py-3 text-xs font-medium tracking-wide" style={{ color: 'var(--text-muted)' }}>#</th>
-                    <th className="text-left px-3 sm:px-5 py-3 text-xs font-medium tracking-wide" style={{ color: 'var(--text-muted)' }}>Round</th>
-                    <th className="text-left px-3 sm:px-5 py-3 text-xs font-medium tracking-wide" style={{ color: 'var(--text-muted)' }}>Timeframe</th>
-                    <th className="text-right px-3 sm:px-5 py-3 text-xs font-medium tracking-wide" style={{ color: 'var(--text-muted)' }}>Stake</th>
+                  <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                    <th className="text-left px-3 py-2.5 font-medium dtc-data" style={{ color: 'var(--text-muted)' }}>#</th>
+                    <th className="text-left px-3 py-2.5 font-medium" style={{ color: 'var(--text-muted)' }}>Round</th>
+                    <th className="text-left px-3 py-2.5 font-medium" style={{ color: 'var(--text-muted)' }}>TF</th>
+                    <th className="text-right px-3 py-2.5 font-medium dtc-data" style={{ color: 'var(--text-muted)' }}>Stake</th>
                     <SortableHeader label="Score" active={sortBy === 'score'} onClick={() => setSortBy('score')} />
-                    <SortableHeader label="Multiplier" active={sortBy === 'multiplier'} onClick={() => setSortBy('multiplier')} />
+                    <SortableHeader label="Mult" active={sortBy === 'multiplier'} onClick={() => setSortBy('multiplier')} />
                     <SortableHeader label="Payout" active={sortBy === 'payout'} onClick={() => setSortBy('payout')} />
-                    <th className="text-right px-3 sm:px-5 py-3 text-xs font-medium tracking-wide" style={{ color: 'var(--text-muted)' }}>Profit</th>
-                    <th className="text-right px-3 sm:px-5 py-3 text-xs font-medium tracking-wide" style={{ color: 'var(--text-muted)' }}>Time</th>
+                    <th className="text-right px-3 py-2.5 font-medium dtc-data" style={{ color: 'var(--text-muted)' }}>P&L</th>
+                    <th className="text-right px-3 py-2.5 font-medium" style={{ color: 'var(--text-muted)' }}>Age</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -170,46 +127,38 @@ export function Leaderboard() {
                         style={{
                           borderBottom:
                             index < sorted.length - 1
-                              ? '1px solid rgba(58, 70, 59, 0.24)'
+                              ? '1px solid var(--border)'
                               : 'none',
                         }}
                         className="transition-colors"
                         onMouseEnter={(event) => {
-                          event.currentTarget.style.background = 'rgba(207, 123, 53, 0.04)';
+                          event.currentTarget.style.background = 'rgba(255,255,255,0.02)';
                         }}
                         onMouseLeave={(event) => {
                           event.currentTarget.style.background = 'transparent';
                         }}
                       >
-                        <td className="px-3 sm:px-5 py-3 dtc-data" style={{ color: 'var(--text-muted)' }}>
+                        <td className="px-3 py-2 dtc-data" style={{ color: 'var(--text-muted)' }}>
                           {index + 1}
                         </td>
-                        <td className="px-3 sm:px-5 py-3">
-                          <div className="flex flex-col gap-1">
-                            <Link
-                              to={entry.sharePath}
-                              className="text-sm no-underline"
-                              style={{ color: 'var(--text-primary)' }}
-                            >
-                              Round {entry.roundCode}
-                            </Link>
-                            <span className="text-[11px] dtc-data" style={{ color: 'var(--text-muted)' }}>
-                              BTC/USDT · {entry.historyPoints}/{entry.futurePoints} candles
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-3 sm:px-5 py-3">
-                          <span
-                            className="inline-block px-2 py-0.5 text-xs dtc-data"
-                            style={{ background: 'rgba(207, 123, 53, 0.12)', color: 'var(--accent-strong)', border: '1px solid rgba(207, 123, 53, 0.24)' }}
+                        <td className="px-3 py-2">
+                          <Link
+                            to={entry.sharePath}
+                            className="text-xs no-underline dtc-data"
+                            style={{ color: 'var(--text-primary)' }}
                           >
+                            {entry.roundCode}
+                          </Link>
+                        </td>
+                        <td className="px-3 py-2">
+                          <span className="dtc-data text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                             {entry.timeframe}
                           </span>
                         </td>
-                        <td className="px-3 sm:px-5 py-3 text-right tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                        <td className="px-3 py-2 text-right dtc-data" style={{ color: 'var(--text-secondary)' }}>
                           ${entry.stake.toFixed(0)}
                         </td>
-                        <td className="px-3 sm:px-5 py-3 text-right tabular-nums font-medium" style={{
+                        <td className="px-3 py-2 text-right dtc-data font-medium" style={{
                           color:
                             entry.score.total >= 70
                               ? 'var(--green)'
@@ -219,23 +168,23 @@ export function Leaderboard() {
                         }}>
                           {entry.score.total.toFixed(1)}
                         </td>
-                        <td className="px-3 sm:px-5 py-3 text-right tabular-nums" style={{
+                        <td className="px-3 py-2 text-right dtc-data" style={{
                           color: profitable ? 'var(--green)' : 'var(--red)',
                         }}>
                           {entry.payout.multiplier.toFixed(2)}x
                         </td>
-                        <td className="px-3 sm:px-5 py-3 text-right tabular-nums font-medium" style={{
-                          color: profitable ? 'var(--green)' : 'var(--red)',
+                        <td className="px-3 py-2 text-right dtc-data" style={{
+                          color: profitable ? 'var(--green)' : 'var(--text-secondary)',
                         }}>
                           ${entry.payout.payout.toFixed(2)}
                         </td>
-                        <td className="px-3 sm:px-5 py-3 text-right tabular-nums" style={{
+                        <td className="px-3 py-2 text-right dtc-data font-medium" style={{
                           color: entry.payout.profit >= 0 ? 'var(--green)' : 'var(--red)',
                         }}>
                           {entry.payout.profit >= 0 ? '+' : ''}
                           ${entry.payout.profit.toFixed(2)}
                         </td>
-                        <td className="px-3 sm:px-5 py-3 text-right text-xs dtc-data" style={{ color: 'var(--text-muted)' }}>
+                        <td className="px-3 py-2 text-right text-[11px]" style={{ color: 'var(--text-muted)' }}>
                           {formatRoundAge(entry.settledAt)}
                         </td>
                       </tr>
@@ -245,26 +194,29 @@ export function Leaderboard() {
               </table>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-8">
-              <StatCard label="Rounds" value={String(stats.rounds)} />
-              <StatCard label="Avg Score" value={stats.avgScore.toFixed(1)} />
-              <StatCard label="Avg Multiplier" value={`${stats.avgMultiplier.toFixed(2)}x`} />
-              <StatCard label="Profitable" value={`${stats.profitableRate.toFixed(0)}%`} />
-              <StatCard
-                label="Net Sandbox PnL"
+            <div
+              className="grid grid-cols-2 sm:grid-cols-5 gap-px rounded-lg overflow-hidden"
+              style={{ background: 'var(--border)', border: '1px solid var(--border)' }}
+            >
+              <StatCell label="Rounds" value={String(stats.rounds)} />
+              <StatCell label="Avg Score" value={stats.avgScore.toFixed(1)} />
+              <StatCell label="Avg Mult" value={`${stats.avgMultiplier.toFixed(2)}x`} />
+              <StatCell label="Win Rate" value={`${stats.profitableRate.toFixed(0)}%`} />
+              <StatCell
+                label="Net P&L"
                 value={`${stats.totalProfit >= 0 ? '+' : ''}$${stats.totalProfit.toFixed(2)}`}
-                accent={stats.totalProfit >= 0 ? 'var(--green)' : 'var(--red)'}
+                color={stats.totalProfit >= 0 ? 'var(--green)' : 'var(--red)'}
               />
             </div>
           </>
         )}
-      </div>
 
-      <footer className="mt-16 pt-8 text-center" style={{ borderTop: '1px solid rgba(54, 58, 69, 0.3)' }}>
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-          Sandbox journal data is local to this browser unless exported.
-        </p>
-      </footer>
+        <footer className="mt-8 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            DTC Sandbox. Not financial advice.
+          </span>
+        </footer>
+      </div>
     </div>
   );
 }
@@ -280,37 +232,31 @@ function SortableHeader({
 }) {
   return (
     <th
-      className="text-right px-3 sm:px-5 py-3 text-xs font-medium tracking-wide cursor-pointer select-none transition-colors"
-      style={{ color: active ? 'var(--accent-strong)' : 'var(--text-muted)' }}
+      className="text-right px-3 py-2.5 font-medium cursor-pointer select-none dtc-data"
+      style={{ color: active ? 'var(--accent)' : 'var(--text-muted)' }}
       onClick={onClick}
     >
       {label}
-      {active && <span className="ml-1">&#x25BC;</span>}
+      {active && <span className="ml-0.5 text-[9px]">&#x25BC;</span>}
     </th>
   );
 }
 
-function StatCard({
+function StatCell({
   label,
   value,
-  accent,
+  color,
 }: {
   label: string;
   value: string;
-  accent?: string;
+  color?: string;
 }) {
   return (
-    <div
-      className="dtc-panel p-5 text-center"
-      style={{
-        background: 'rgba(14, 18, 15, 0.84)',
-        border: '1px solid rgba(58, 70, 59, 0.72)',
-      }}
-    >
-      <div className="dtc-display text-4xl font-semibold dtc-data mb-1" style={{ color: accent ?? 'var(--text-primary)' }}>
+    <div className="p-4 text-center" style={{ background: 'var(--bg-secondary)' }}>
+      <div className="dtc-data text-lg font-semibold mb-0.5" style={{ color: color ?? 'var(--text-primary)' }}>
         {value}
       </div>
-      <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{label}</div>
+      <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{label}</div>
     </div>
   );
 }

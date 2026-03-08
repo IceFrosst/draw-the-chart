@@ -419,7 +419,7 @@ function renderHLine(
       <text
         x={metrics.left + metrics.width - 40}
         y={point.y + 3}
-        fill="#0c100d"
+        fill="#0d0d0f"
         fontSize="10"
         textAnchor="middle"
         fontWeight="700"
@@ -552,7 +552,7 @@ function renderFib(
 function renderHandle(point: ScreenPoint, color: string) {
   return (
     <g>
-      <circle cx={point.x} cy={point.y} r="5.5" fill="#0c100d" stroke={color} strokeWidth="2" />
+      <circle cx={point.x} cy={point.y} r="5.5" fill="#0d0d0f" stroke={color} strokeWidth="2" />
       <circle cx={point.x} cy={point.y} r="10" fill={color} opacity="0.08" />
     </g>
   );
