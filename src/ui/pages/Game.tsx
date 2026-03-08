@@ -1117,67 +1117,15 @@ export function Game() {
                 <PayoutCurve currentScore={score.total} />
               </div>
             </div>
-            {roundAssessment && (
-              <div
-                className="dtc-panel p-3 sm:p-4 max-w-[340px]"
-                style={{
-                  background: 'rgba(17, 17, 19, 0.96)',
-                  backdropFilter: 'blur(8px)',
-                }}
-              >
-                <div className="dtc-eyebrow mb-2">Round Analysis</div>
-                <div
-                  className="inline-flex items-center px-2 py-1 text-[11px] dtc-data mb-3"
-                  style={{
-                    background: 'var(--accent-soft)',
-                    color: 'var(--accent)',
-                    border: '1px solid rgba(212, 168, 92, 0.2)',
-                  }}
-                >
-                  {roundAssessment.band}
-                </div>
-                <div className="text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                  {roundAssessment.headline}
-                </div>
-                <p className="text-xs leading-6 mb-3" style={{ color: 'var(--text-secondary)' }}>
-                  {roundAssessment.summary}
-                </p>
-                <div className="space-y-2">
-                  {roundAssessment.insights.map((insight) => (
-                    <div
-                      key={insight.title}
-                      className="dtc-panel-subtle p-2.5"
-                      style={{
-                        background: 'rgba(255,255,255,0.02)',
-                        border: '1px solid var(--border)',
-                      }}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <span
-                          className="inline-block w-1.5 h-1.5 rounded-full"
-                          style={{
-                            background:
-                              insight.tone === 'good'
-                                ? 'var(--green)'
-                                : insight.tone === 'warning'
-                                  ? 'var(--red)'
-                                  : 'var(--accent)',
-                          }}
-                        />
-                        <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
-                          {insight.title}
-                        </span>
-                      </div>
-                      <p className="text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}>
-                        {insight.body}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-3 pt-3 text-[11px] dtc-data" style={{ borderTop: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
-                  Saved to local sandbox history as round {roundCode}.
-                </div>
-              </div>
+            {showFeedbackModal && supabaseRoundId && score && payoutInfo && (
+              <FeedbackModal
+                roundId={supabaseRoundId}
+                score={score}
+                multiplier={payoutInfo.multiplier}
+                inline
+                onClose={() => setShowFeedbackModal(false)}
+                onSubmitted={() => setShowFeedbackModal(false)}
+              />
             )}
           </div>
         )}
@@ -1337,15 +1285,6 @@ export function Game() {
         </div>
       </footer>
 
-      {showFeedbackModal && supabaseRoundId && score && payoutInfo && (
-        <FeedbackModal
-          roundId={supabaseRoundId}
-          score={score}
-          multiplier={payoutInfo.multiplier}
-          onClose={() => setShowFeedbackModal(false)}
-          onSubmitted={() => setShowFeedbackModal(false)}
-        />
-      )}
     </div>
   );
 }

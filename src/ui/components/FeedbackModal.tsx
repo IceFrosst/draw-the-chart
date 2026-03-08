@@ -6,6 +6,7 @@ interface FeedbackModalProps {
   roundId: string;
   score: ScoreBreakdown;
   multiplier: number;
+  inline?: boolean;
   onClose: () => void;
   onSubmitted: () => void;
 }
@@ -34,7 +35,7 @@ const COMPONENT_OPTIONS: { value: ScoreComponent; label: string }[] = [
   { value: 'volatility', label: 'Volatility' },
 ];
 
-export function FeedbackModal({ roundId, score, multiplier, onClose, onSubmitted }: FeedbackModalProps) {
+export function FeedbackModal({ roundId, score, multiplier, inline, onClose, onSubmitted }: FeedbackModalProps) {
   const [fairness, setFairness] = useState<FairnessVote | null>(null);
   const [selfScore, setSelfScore] = useState<number>(Math.round(score.total));
   const [confidence, setConfidence] = useState<number>(3);
@@ -79,14 +80,14 @@ export function FeedbackModal({ roundId, score, multiplier, onClose, onSubmitted
     );
   };
 
-  return (
-    <div
-      className="fixed right-0 top-0 bottom-0 flex items-start justify-end"
-      style={{ zIndex: 60, pointerEvents: 'none' }}
-    >
+  const content = (
       <div
-        className="dtc-panel p-4 w-72 animate-slide-in space-y-3 overflow-y-auto m-2 mt-14"
-        style={{ maxHeight: 'calc(100vh - 72px)', pointerEvents: 'auto', boxShadow: 'var(--shadow-md)' }}
+        className={`dtc-panel p-3 sm:p-4 space-y-3 overflow-y-auto ${inline ? '' : 'w-72 animate-slide-in m-2 mt-14'}`}
+        style={{
+          ...(inline
+            ? { background: 'rgba(17, 17, 19, 0.96)', backdropFilter: 'blur(8px)', maxWidth: '340px' }
+            : { maxHeight: 'calc(100vh - 72px)', pointerEvents: 'auto', boxShadow: 'var(--shadow-md)' }),
+        }}
       >
         {/* Header */}
         <div>
@@ -227,6 +228,16 @@ export function FeedbackModal({ roundId, score, multiplier, onClose, onSubmitted
           </button>
         </div>
       </div>
+  );
+
+  if (inline) return content;
+
+  return (
+    <div
+      className="fixed right-0 top-0 bottom-0 flex items-start justify-end"
+      style={{ zIndex: 60, pointerEvents: 'none' }}
+    >
+      {content}
     </div>
   );
 }
