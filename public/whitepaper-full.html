@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Draw The Chart Whitepaper</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1d1a17;
+      --muted: #635d54;
+      --accent: #b96c2f;
+      --rule: #ddd5c8;
+      --page: #fbf8f1;
+      --panel: #f4eee2;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+      line-height: 1.6;
+    }
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 56px 40px 80px;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      font-family: "Avenir Next Condensed", "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin: 1.35em 0 0.55em;
+      color: #15120f;
+    }
+    h1 { font-size: 2.9rem; margin-top: 0; }
+    h2 {
+      font-size: 1.7rem;
+      padding-top: 1.1rem;
+      border-top: 1px solid var(--rule);
+      margin-top: 2.2rem;
+    }
+    h3 { font-size: 1.15rem; color: var(--accent); }
+    p, ul, ol, table { margin: 0 0 1rem; }
+    ul, ol { padding-left: 1.4rem; }
+    li { margin: 0.22rem 0; }
+    a { color: var(--accent); text-decoration: none; }
+    code {
+      font-family: "SF Mono", "IBM Plex Mono", "Menlo", monospace;
+      font-size: 0.92em;
+      background: var(--panel);
+      padding: 0.12rem 0.3rem;
+      border-radius: 4px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.96rem;
+      background: rgba(255,255,255,0.45);
+    }
+    th, td {
+      text-align: left;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid var(--rule);
+      vertical-align: top;
+    }
+    th {
+      font-family: "Avenir Next", "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.82rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(185, 108, 47, 0.08);
+    }
+    @media print {
+      body { background: white; }
+      main { padding: 0; max-width: none; }
+      h2 { break-after: avoid; }
+      table, ul, ol, p { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+<h1>Draw The Chart</h1>
+<h2>Whitepaper</h2>
+<p>Version 1.1 Date: March 8, 2026 Status: Sandbox-first product paper</p>
+<h2>Disclaimer</h2>
+<p>This document describes the product vision, current implementation, launch architecture, scoring model, and live rollout design for Draw The Chart (DTC). It is not investment advice, not a promise of future token issuance, and not a solicitation to participate in any regulated product in any jurisdiction where such participation would be restricted.</p>
+<p>Where relevant, this paper explicitly distinguishes between:</p>
+<ul><li>what is implemented today in the sandbox product</li><li>what is intended for the live product</li></ul>
+<p>That distinction matters. The credibility of DTC depends on being precise about what exists, what is calibrated, and what still needs to be built.</p>
+<h2>1. Abstract</h2>
+<p>Draw The Chart is a crypto prediction game in which the player expresses a market thesis by drawing the future price path rather than selecting a binary outcome or opening a leveraged position.</p>
+<p>A round begins at a fixed market anchor. The player sees the historical BTC chart up to that anchor, then draws an expected future path over a fixed horizon such as 15 minutes, 1 hour, 6 hours, 24 hours, or 7 days. That path is normalized into a valid prediction shape, scored against the realized market path in log-return space, and mapped to a transparent payout curve.</p>
+<p>The core idea is simple: crypto users already think in charts, draw scenarios, and debate path shape. Existing products compress that behavior into &quot;up or down,&quot; or force the user into a full trading workflow with leverage, liquidation risk, order management, and unnecessary complexity. DTC turns the chart itself into the game object.</p>
+<p>The product is designed to sit between prediction markets and trading:</p>
+<ul><li>more expressive than binary prediction markets</li><li>simpler than leveraged trading</li><li>more skill-flavored than pure casino mechanics</li><li>more bounded and transparent than a traditional perp position</li></ul>
+<p>The MVP is intentionally narrow. It focuses on BTC only, five fixed horizons, sandbox rounds first, deterministic scoring, and a calibrated payout engine. The hard problem is not adding more assets or screens; it is making the draw-feel, scoring logic, and economic loop trustworthy enough to survive scrutiny.</p>
+<h2>2. Why This Product Should Exist</h2>
+<h3>2.1 The behavior already exists</h3>
+<p>Crypto users already perform the core DTC action informally:</p>
+<ul><li>they draw trend lines and target paths on charts</li><li>they post &quot;BTC to here first, then retrace&quot; scenarios on social platforms</li><li>they argue about timing, not just direction</li><li>they think in shape, structure, and volatility regimes</li></ul>
+<p>This is already a game. It just is not captured natively by a product.</p>
+<h3>2.2 Existing products do not capture the full thesis</h3>
+<p>Most market products force a richer thesis into a poorer input format.</p>
+<p>Prediction markets reduce a view to a yes/no proposition:</p>
+<ul><li>&quot;Will BTC be above X by date Y?&quot;</li><li>&quot;Will candidate Z win?&quot;</li></ul>
+<p>That structure is useful for event resolution, but it does not capture path shape. A player may believe BTC rallies first, then fades, then finishes slightly above the threshold. In a binary market, all of that nuance is discarded.</p>
+<p>Perpetual trading captures more than a binary market, but it creates a different set of frictions:</p>
+<ul><li>leverage selection</li><li>position sizing</li><li>entry execution</li><li>liquidation management</li><li>stop-loss and take-profit management</li><li>funding-rate considerations</li></ul>
+<p>This is appropriate for traders. It is excessive for someone who wants to express a directional and structural thesis on the chart itself.</p>
+<p>Pure gambling products sit at the other extreme. They offer immediacy and convex payouts but usually remove the feeling of analytical agency. DTC is built on the belief that perceived agency matters. Players want the experience to feel like &quot;I read the chart well,&quot; not &quot;I clicked a coin flip.&quot;</p>
+<h3>2.3 The gap DTC fills</h3>
+<p>DTC fills a specific gap:</p>
+<ul><li>house-vs-player simplicity</li><li>chart-native input</li><li>deterministic scoring</li><li>bounded downside</li><li>transparent upside curve</li><li>replayable and reviewable outcomes</li></ul>
+<p>The value proposition is not &quot;predict the future perfectly.&quot; The value proposition is &quot;express more of your thesis than a binary bet allows, and get paid if that thesis was meaningfully right.&quot;</p>
+<h3>2.4 Competitive positioning</h3>
+<p>DTC should be understood relative to four adjacent categories:</p>
+<ol><li>Prediction markets</li></ol>
+<p>Strong on event resolution, weak on path expression.</p>
+<ol><li>Perp DEXs and margin venues</li></ol>
+<p>Strong on execution flexibility, weak on accessibility and bounded simplicity.</p>
+<ol><li>Social charting</li></ol>
+<p>Strong on expression, weak on economic closure.</p>
+<ol><li>Casino-style convex products</li></ol>
+<p>Strong on excitement, weak on perceived skill.</p>
+<p>DTC combines pieces of all four:</p>
+<ul><li>the expressive input of charting</li><li>the finality of a settled game</li><li>the convex upside of a gambling product</li><li>the market context of trading</li></ul>
+<p>This is why the product should not feel like a casino skin wrapped around a random number generator. The chart is not a theme. It is the mechanic.</p>
+<h2>3. Product Definition</h2>
+<h3>3.1 One-sentence definition</h3>
+<p>Draw The Chart is a house-vs-player BTC price-path prediction game where users draw an expected future path and receive a score-based payout.</p>
+<h3>3.2 MVP scope</h3>
+<p>The MVP is intentionally constrained:</p>
+<ul><li>asset: BTC/USDT</li><li>horizons: 15m, 1h, 6h, 24h, 7d</li><li>chart mode: historical candles plus future draw zone</li><li>prediction input: continuous line, normalized into control points</li><li>settlement mode: historical sandbox first</li><li>score output: 0 to 100 with component breakdown</li><li>payout model: transparent multiplier curve</li></ul>
+<h3>3.3 Current implementation status</h3>
+<p>As of this version of the paper, the repo implements:</p>
+<ul><li>a standalone pure-function scoring engine</li><li>backtesting on local BTC 1-minute candle data</li><li>calibrated payout curve logic</li><li>sandbox rounds on historical BTC data</li><li>candlestick history and future-zone drawing UI</li><li>deterministic score breakdown and reveal flow</li><li>sandbox API endpoints for round lifecycle testing</li></ul>
+<p>The repo does not yet implement:</p>
+<ul><li>wallet connection</li><li>live bankroll-backed settlement</li><li>real-time round orchestration</li><li>persistent user accounts or balances</li><li>production risk controls</li><li>licensed third-party full charting suites</li></ul>
+<h3>3.4 Why the product is house-vs-player</h3>
+<p>The product is intentionally house-vs-player rather than peer-matched.</p>
+<p>That choice has several advantages:</p>
+<ul><li>immediate liquidity</li><li>consistent round availability</li><li>clear exposure accounting</li><li>no dependency on matching opposing views</li><li>simpler product UX</li></ul>
+<p>The tradeoff is that the house must actively manage bankroll risk. That is acceptable because DTC is not trying to be a venue for price discovery. It is a structured prediction game with a transparent scoring and payout engine.</p>
+<h2>4. Design Principles</h2>
+<p>The product is built around seven principles.</p>
+<h3>4.1 Expressiveness over compression</h3>
+<p>The user should be able to express:</p>
+<ul><li>direction</li><li>timing</li><li>magnitude</li><li>turning points</li><li>volatility structure</li></ul>
+<p>If the product reduces all of that to a yes/no choice, it has failed its premise.</p>
+<h3>4.2 Determinism over mystique</h3>
+<p>Every score must come from documented, deterministic logic. &quot;The engine decided&quot; is not good enough. A user should be able to inspect why a path scored well or badly.</p>
+<h3>4.3 Calibration over intuition</h3>
+<p>A scoring system that sounds elegant in prose but produces absurd baseline distributions is not valid. DTC treats backtest calibration as a first-class requirement, not a later polish step.</p>
+<h3>4.4 Bounded downside, convex upside</h3>
+<p>The user should know the downside floor and the upside shape before participating. This is both a product-quality and trust requirement.</p>
+<h3>4.5 Chart feel is product-critical</h3>
+<p>The drawing interaction is the product. If it feels laggy, unintuitive, or visually fake, the product loses its edge. A weak input experience cannot be rescued by good math.</p>
+<h3>4.6 Transparency about scope</h3>
+<p>The sandbox, scoring engine, and payout curve should be auditable even before the live product exists. Users should not have to trust future promises in order to understand the present system.</p>
+<h3>4.7 Narrow first, then deepen</h3>
+<p>BTC only is not a limitation of ambition. It is a deliberate decision to harden the hardest parts first:</p>
+<ul><li>input quality</li><li>scoring validity</li><li>payout economics</li><li>trust model</li></ul>
+<h2>5. Core Product Loop</h2>
+<p>The player loop is:</p>
+<ol><li>Select BTC and a timeframe.</li><li>View the historical chart up to a locked anchor.</li><li>Enter a stake amount.</li><li>Draw the expected future path.</li><li>Submit the prediction.</li><li>Reveal the realized path.</li><li>Receive a component score and payout outcome.</li><li>Replay the round and learn from the result.</li></ol>
+<p>That loop should feel short, self-explanatory, and repeatable. It is closer to &quot;place your thesis&quot; than &quot;configure a trading setup.&quot;</p>
+<h3>5.1 Example round walkthrough</h3>
+<p>Consider a 1-hour sandbox round:</p>
+<ul><li>BTC is locked at $102,125.22 at the anchor.</li><li>The player believes price will break upward quickly, top out midway through the hour, then fade slightly but remain above the start.</li><li>The player draws a sharp rally into the future zone, then a moderate pullback.</li><li>The actual path rises more gradually, chops sideways, and ends modestly above the anchor.</li></ul>
+<p>The round is scored as follows:</p>
+<ul><li>direction: relatively strong, because the broad thesis was upward</li><li>magnitude: mixed, because the player overshot the rally amplitude</li><li>turning points: mixed, because the player anticipated one major turn but mis-timed the local structure</li><li>volatility regime: moderate, because the player predicted a more explosive first half than actually occurred</li></ul>
+<p>Suppose the final score is 73.0. Under the current payout curve, that maps to a multiplier above 1.0x and therefore a profit. The player can then review both paths and see where the thesis was right and where it was too aggressive.</p>
+<p>This is the intended learning loop:</p>
+<ul><li>not merely &quot;won or lost&quot;</li><li>but &quot;which part of the thesis was correct&quot;</li></ul>
+<h2>6. Input Model and Chart Interaction</h2>
+<h3>6.1 Why the user draws a line, not candles</h3>
+<p>The chart history is shown as candles because the market is observed through OHLC data. The prediction is expressed as a continuous path because the thesis is not about future candle opens and closes; it is about expected price movement through time.</p>
+<p>The product separates:</p>
+<ul><li>historical market representation</li><li>predictive thesis representation</li></ul>
+<p>This is a useful distinction. A player's thesis usually sounds like:</p>
+<ul><li>&quot;push higher first&quot;</li><li>&quot;retest the low&quot;</li><li>&quot;grind sideways then expand&quot;</li></ul>
+<p>Those are path statements, not future-candle statements.</p>
+<h3>6.2 Future zone</h3>
+<p>The input area opens as a fixed future zone to the right of the anchor. This has several purposes:</p>
+<ul><li>it preserves context from the historical chart</li><li>it makes the anchor visually explicit</li><li>it cleanly separates known data from player expression</li><li>it allows reveal animation to happen on the same canvas</li></ul>
+<h3>6.3 Freehand capture and normalized structure</h3>
+<p>The live interaction captures a freehand stroke first. The system does not score the raw stroke directly. Instead, it normalizes the path into a constrained prediction shape.</p>
+<p>This design choice serves two goals at once:</p>
+<ul><li>the interaction can feel fluid and expressive</li><li>the scored output can remain deterministic and resistant to exploitative edge cases</li></ul>
+<h3>6.4 Control-point constraints</h3>
+<p>The current MVP uses horizon-specific control-point limits:</p>
+<ul><li>15m: 8</li><li>1h: 12</li><li>6h: 16</li><li>24h: 16</li><li>7d: 16</li></ul>
+<p>The normalized path must satisfy:</p>
+<ul><li>first point fixed at the anchor</li><li>last point fixed at the horizon end</li><li>strictly increasing time</li><li>minimum time spacing between control points</li><li>maximum slope between consecutive points</li></ul>
+<p>The max slope is bounded relative to historical BTC hourly movement so that an input cannot jump from a plausible market thesis into absurd vertical spikes.</p>
+<h3>6.5 Technical analysis tools</h3>
+<p>Technical analysis tools are present because users expect a charting environment to support reference structure:</p>
+<ul><li>trend lines</li><li>rays</li><li>horizontal levels</li><li>Fibonacci tools</li></ul>
+<p>These tools are for player interpretation. They are not part of the scored path unless explicitly integrated into a future game mode. That separation matters. The score must be derived from one authoritative prediction path, not from ambiguous layers of annotations.</p>
+<h3>6.6 Why the interface should resemble a market terminal</h3>
+<p>The TA shell, candles, timeframes, and dense numeric framing are not cosmetic. They create the correct mental model:</p>
+<ul><li>the player is making a market call</li><li>the product is chart-first, not roulette-first</li><li>the outcome should feel reviewable</li></ul>
+<p>That said, the interface should not merely mimic a perp DEX. DTC is a distinct product. It should borrow the clarity and density of exchange interfaces while remaining clearly optimized for one action: drawing the forecast.</p>
+<h2>7. Data Model and Path Representation</h2>
+<h3>7.1 Log-return space</h3>
+<p>All scoring is performed in log-return space:</p>
+<p><code>r(t) = ln(P(t) / P0)</code></p>
+<p>where:</p>
+<ul><li><code>P0</code> is the round's locked starting price</li><li><code>r(T0) = 0</code></li></ul>
+<p>This choice is important because it makes paths comparable across different BTC price levels. A $500 move means different things when BTC is at $20,000 versus $110,000. Log returns normalize that difference.</p>
+<h3>7.2 Resampling</h3>
+<p>Both the predicted path and the realized path are resampled to <code>N = 120</code> evenly spaced points before scoring.</p>
+<p>This standardization solves three problems:</p>
+<ul><li>it makes all horizons comparable under one scoring framework</li><li>it reduces sensitivity to arbitrary draw resolution</li><li>it ensures every scoring component operates on a consistent representation</li></ul>
+<h3>7.3 Market data resolution</h3>
+<p>The sandbox uses BTC historical data at different display resolutions depending on horizon:</p>
+<ul><li>1-minute candles for short horizons</li><li>5-minute candles for 6-hour rounds</li><li>15-minute candles for 24-hour rounds</li><li>1-hour candles for 7-day rounds</li></ul>
+<p>This keeps the displayed chart legible while preserving meaningful market structure for the timeframe being played.</p>
+<h3>7.4 Display path versus scored path</h3>
+<p>The product should clearly communicate the difference between:</p>
+<ul><li>the path the user visually drew</li><li>the normalized path that was scored</li><li>the realized path that settled the round</li></ul>
+<p>This is why the reveal state benefits from showing:</p>
+<ul><li>the submitted drawing</li><li>the normalized or resampled scored path</li><li>the actual path</li></ul>
+<p>That visual separation turns a black-box score into an inspectable result.</p>
+<h2>8. Scoring Engine</h2>
+<p>The scoring engine produces a total score from 0 to 100:</p>
+<p><code>S = DirectionScore + MagnitudeScore + TurningScore + ShapeScore</code></p>
+<p>The implementation is a pure TypeScript module with no side effects. This is deliberate. Scoring should be testable independently from UI or backend state.</p>
+<h3>8.1 Component A: Directional Accuracy (0-40)</h3>
+<p>Naive point-by-point sign matching is too noisy. A user can match micro-sign changes by accident, especially at high sample rates. DTC instead uses a multi-scale direction score.</p>
+<p>The horizon is split into increasingly fine segments:</p>
+<ul><li>halves</li><li>quarters</li><li>eighths</li><li>sixteenths</li></ul>
+<p>At each scale, the system compares the sign of the net move in each predicted segment against the corresponding actual segment. Coarser scales are weighted more heavily.</p>
+<p>Conceptually:</p>
+<p><code>DirectionScore = 40 <em> sum(w_l </em> H_l) / sum(w_l)</code></p>
+<p>where:</p>
+<ul><li><code>H_l</code> is the fraction of correctly signed segments at scale level <code>l</code></li><li><code>w_l</code> decays geometrically so that larger structural direction matters more than small noise</li></ul>
+<p>This rewards getting the broad thesis right.</p>
+<h3>8.2 Component B: Magnitude Accuracy (0-30)</h3>
+<p>Magnitude accuracy is intentionally split into two types of error:</p>
+<ul><li>bias: the prediction is systematically too high or too low</li><li>tracking error: the prediction shape diverges from the realized path even after removing bias</li></ul>
+<p>Both are normalized by realized volatility so that error is judged relative to how much the market actually moved.</p>
+<p>Conceptually:</p>
+<p><code>MagnitudeScore = 30 <em> exp(-lambda </em> (w_b <em> |bias| / sigma + w_t </em> RMSE_debiased / sigma))</code></p>
+<p>This is better than a raw RMSE approach because it distinguishes:</p>
+<ul><li>&quot;I got the path but overshot the level&quot;</li><li>&quot;I drew the wrong shape entirely&quot;</li></ul>
+<h3>8.3 Component C: Turning Points (0-20)</h3>
+<p>Turning points matter because a market thesis is not only about final direction. Timing of reversals is one of the most visible parts of chart reading.</p>
+<p>The current implementation follows a documented structure:</p>
+<ol><li>Smooth both predicted and actual paths with a Gaussian kernel.</li><li>Detect local extrema above a prominence threshold tied to realized volatility.</li><li>Match predicted extrema to actual extrema.</li><li>Score the matches by time offset and amplitude similarity.</li><li>Penalize unmatched predicted turns and unmatched actual turns.</li></ol>
+<p>This component exists to reward meaningful structural insight without letting a player spray tiny wiggles into the path and receive credit for noise.</p>
+<h3>8.4 Component D: Volatility Regime (0-10)</h3>
+<p>The horizon is split into four equal quarters. Predicted path volatility is compared with realized path volatility for each quarter.</p>
+<p>Conceptually:</p>
+<p><code>ShapeScore = 10 <em> exp(-mu </em> mean(|vol_pred_q - vol_actual_q| / vol_actual_q))</code></p>
+<p>This rewards matching the rhythm of the round:</p>
+<ul><li>calm then expansion</li><li>steady grind</li><li>front-loaded impulse</li><li>late volatility burst</li></ul>
+<h3>8.5 Why the weights are 40 / 30 / 20 / 10</h3>
+<p>The weights reflect product priorities:</p>
+<ul><li>direction matters most</li><li>level and shape matter next</li><li>timing of turns is important but should not dominate</li><li>volatility regime is useful but should remain a smaller corrective signal</li></ul>
+<p>The weights are not sacred. They are calibrated against baseline behavior. If those baselines drift, the weights and parameters should be re-tuned openly.</p>
+<h3>8.6 Interpretation of score ranges</h3>
+<p>The score is not meant to be read as a grade in the abstract. It is a settlement metric. Still, the following interpretation is useful:</p>
+<ul><li>0-25: thesis was meaningfully wrong</li><li>25-40: weak or partially lucky structure</li><li>40-60: some useful information content, but not payout-profitable</li><li>60-80: broadly strong forecast</li><li>80-95: very strong forecast</li><li>95+: exceptional path accuracy</li></ul>
+<p>The break-even threshold is not the same thing as &quot;good call.&quot; It is the economic threshold where the payout curve crosses from refund to profit.</p>
+<h2>9. Calibration and Backtesting</h2>
+<p>Calibration is central to DTC. A whitepaper claim about scoring quality means very little unless the engine is backtested against non-trivial baseline strategies.</p>
+<h3>9.1 Why calibration matters</h3>
+<p>If a random drawing can score 55 on average, the system is broken. If a flat line scores almost the same as a strong trend thesis, the system is broken. If near-perfect paths fail to cluster near 100, the system is broken.</p>
+<p>The scoring engine is only valid if it separates signal from common failure modes in a stable and explainable way.</p>
+<h3>9.2 Current backtest framework</h3>
+<p>The repo includes a backtest harness using local BTC 1-minute candle data and synthetic player strategies. The calibration comments in the scoring config refer to roughly seven months of BTC/USDT 1-minute candles, about 302,000 candles from August 2025 through March 2026.</p>
+<p>The harness evaluates the scoring engine across the full horizon set and across strategy archetypes such as:</p>
+<ul><li>random walk prediction</li><li>flat-line prediction</li><li>naive trend extrapolation</li><li>exploratory mean reversion</li><li>near-perfect prediction</li></ul>
+<h3>9.3 Target baseline bands</h3>
+<p>The intended target bands are:</p>
+<ul><li>random walk: 30-35</li><li>flat line: 25-35</li><li>naive trend extrapolation: 35-50</li><li>perfect prediction: 100</li></ul>
+<h3>9.4 Current calibrated means</h3>
+<p>The current implementation reports overall means approximately at:</p>
+<ul><li>Random Walk: 35.0</li><li>Flat Line: 25.7</li><li>Naive Trend: 39.5</li><li>Near Perfect: 98.7</li></ul>
+<p>These are in-band for the baseline strategies that matter most. The near-perfect strategy is intentionally not a mathematically exact replay of reality, which is why it clusters just below 100 rather than exactly at 100.</p>
+<h3>9.5 What calibration does not solve</h3>
+<p>Backtests do not guarantee perfect fairness. They do not eliminate:</p>
+<ul><li>regime shifts in BTC behavior</li><li>exploit attempts around input constraints</li><li>user frustration with score interpretation</li><li>operational risk in live settlement</li></ul>
+<p>Calibration is necessary, not sufficient.</p>
+<h2>10. Payout Engine</h2>
+<p>The payout curve maps score to multiplier. It is intentionally two-zoned:</p>
+<ul><li>a refund zone below break-even</li><li>a profit zone above break-even</li></ul>
+<h3>10.1 Refund zone</h3>
+<p>For <code>x &lt; x_be</code>:</p>
+<p><code>M(x) = M_min + (1 - h - M_min) * (x / x_be)^alpha</code></p>
+<p>This means the player does not drop immediately to zero for a partially correct call. A weak but non-zero thesis still recovers part of the stake.</p>
+<h3>10.2 Profit zone</h3>
+<p>For <code>x &gt;= x_be</code>:</p>
+<p><code>M(x) = min(M_max, (1 - h) <em> exp(k </em> (x - x_be) / (1 - x_be)))</code></p>
+<p>This creates convex upside for genuinely strong forecasts while preserving a hard cap on tail exposure.</p>
+<h3>10.3 Current parameter set</h3>
+<p>The current default configuration is:</p>
+<ul><li>house edge <code>h = 0.02</code></li><li>break-even score <code>x_be = 0.60</code></li><li>minimum multiplier <code>M_min = 0.40</code></li><li>refund exponent <code>alpha = 1.45</code></li><li>hard cap <code>M_max = 25</code></li><li>profit growth <code>k = 3.25</code></li></ul>
+<h3>10.4 Example payout table for a $100 stake</h3>
+<table><thead><tr><th>Score</th><th>Multiplier</th><th>Payout</th><th>Profit / Loss</th></tr></thead><tbody><tr><td>0</td><td>0.40x</td><td>$40.00</td><td>-$60.00</td></tr><tr><td>20</td><td>0.52x</td><td>$51.79</td><td>-$48.21</td></tr><tr><td>30</td><td>0.61x</td><td>$61.23</td><td>-$38.77</td></tr><tr><td>40</td><td>0.72x</td><td>$72.22</td><td>-$27.78</td></tr><tr><td>45</td><td>0.78x</td><td>$78.22</td><td>-$21.78</td></tr><tr><td>50</td><td>0.85x</td><td>$84.53</td><td>-$15.47</td></tr><tr><td>55</td><td>0.91x</td><td>$91.13</td><td>-$8.87</td></tr><tr><td>60</td><td>0.98x</td><td>$98.00</td><td>-$2.00</td></tr><tr><td>70</td><td>2.21x</td><td>$220.85</td><td>+$120.85</td></tr><tr><td>80</td><td>4.98x</td><td>$497.69</td><td>+$397.69</td></tr><tr><td>90</td><td>11.22x</td><td>$1,121.55</td><td>+$1,021.55</td></tr><tr><td>95</td><td>16.84x</td><td>$1,683.65</td><td>+$1,583.65</td></tr><tr><td>99</td><td>23.30x</td><td>$2,330.22</td><td>+$2,230.22</td></tr><tr><td>100</td><td>25.00x</td><td>$2,500.00</td><td>+$2,400.00</td></tr></tbody></table>
+<p>This parameter set is deliberately friendlier in the middle and stricter in the tail than earlier sandbox versions. On the current economics harness, flat-line predictions average about <code>0.57x</code>, random walk about <code>0.74x</code>, naive trend about <code>0.81x</code>, mean reversion about <code>0.84x</code>, and near-perfect paths about <code>23x</code> with the cap enforced at <code>25x</code>.</p>
+<h3>10.5 Why use a refund zone</h3>
+<p>The refund zone is not there to make the game soft. It exists because DTC is not a binary proposition. A player can be directionally right, structurally thoughtful, and still fall short of economic profitability.</p>
+<p>A partial-refund structure serves several product goals:</p>
+<ul><li>it better matches the gradated nature of path prediction</li><li>it makes weak-but-nonzero insight feel recognized</li><li>it creates a less punishing learning loop than all-or-nothing loss</li></ul>
+<h3>10.6 Why use convex profit</h3>
+<p>If high-quality predictions only paid linearly, the product would under-reward the behavior it is trying to elicit. Convex upside makes strong forecasts matter.</p>
+<p>The cap exists because the house is not an infinite balance sheet.</p>
+<h2>11. House Economics and Bankroll Risk</h2>
+<p>The live product only works if the payout curve is paired with disciplined bankroll management.</p>
+<h3>11.1 What the house is underwriting</h3>
+<p>The house is underwriting:</p>
+<ul><li>variance of player skill</li><li>variance of market regime</li><li>correlation across overlapping rounds</li><li>tail risk from very high scores</li></ul>
+<p>The live product should never behave as if each round is independent. In crypto, many rounds become correlated during strong directional regimes.</p>
+<h3>11.2 Required live controls</h3>
+<p>The live system should enforce at least:</p>
+<ul><li>minimum and maximum stake limits</li><li>per-round maximum payout reserve</li><li>total reserved exposure across open rounds</li><li>correlation-aware exposure limits by asset and horizon</li><li>automatic throttling when bankroll stress rises</li></ul>
+<h3>11.3 Why correlation matters</h3>
+<p>If BTC enters a strong clean trend, many players may independently draw similar upward or downward paths. Those predictions become correlated against the house. The risk is not merely one player scoring 90+. The risk is many players doing so in the same regime.</p>
+<p>The live risk engine should therefore reserve against:</p>
+<ul><li>open 1-hour rounds</li><li>open 24-hour rounds</li><li>open 7-day rounds</li><li>clusters of similar directional exposures</li></ul>
+<h3>11.4 Recommended live launch posture</h3>
+<p>The live launch should be conservative:</p>
+<ul><li>BTC only</li><li>small max stake</li><li>low reserved exposure per round</li><li>hard multiplier cap enforced at settlement</li><li>manual operational monitoring</li></ul>
+<p>This is the correct sequence. DTC should not start by pretending to be a high-throughput casino. It should start as a tightly scoped product whose economics remain legible under stress.</p>
+<h2>12. Fairness, Verification, and Settlement</h2>
+<p>Trust is one of the main failure points for any gambling-adjacent crypto product. DTC should aim for trust through verifiability rather than slogans.</p>
+<h3>12.1 Current sandbox trust model</h3>
+<p>The current sandbox already provides useful trust-building pieces:</p>
+<ul><li>deterministic scoring</li><li>visible score breakdown</li><li>replayable historical rounds</li><li>transparent payout curve</li><li>API exposure of config and sandbox round states</li></ul>
+<p>This allows a skeptical user to understand how the game works before any live money exists.</p>
+<h3>12.2 Target live trust model</h3>
+<p>The live product should settle using a commit-reveal model:</p>
+<ol><li>Before the round begins, the system commits to the round payload and start state using a cryptographic hash.</li><li>The player submits a prediction without seeing future data.</li><li>After the horizon ends, the system reveals the payload and the realized path used for settlement.</li><li>The user can verify that the settled round matches the earlier commitment.</li></ol>
+<h3>12.3 Replayability</h3>
+<p>Each settled round should be replayable with:</p>
+<ul><li>anchor price</li><li>prediction path</li><li>realized path</li><li>scoring breakdown</li><li>payout result</li><li>reveal proof</li></ul>
+<p>The goal is that a user can inspect any controversial outcome after the fact rather than appealing to an opaque operator.</p>
+<h3>12.4 Failure handling</h3>
+<p>The live settlement engine should define explicit policies for:</p>
+<ul><li>missing data</li><li>stale data</li><li>incomplete horizon data</li><li>venue outages</li><li>obviously corrupted samples</li></ul>
+<p>The default principle should be conservative:</p>
+<ul><li>if settlement quality is compromised, refund or void rather than force a dubious score</li></ul>
+<h2>13. Market Data and Oracle Design</h2>
+<p>The sandbox uses local historical BTC data. That is sufficient for calibration and interaction design. The live product will require a stronger data pipeline.</p>
+<h3>13.1 Data requirements</h3>
+<p>The live settlement path needs:</p>
+<ul><li>reliable timestamped BTC price data</li><li>consistent sampling rules</li><li>resilience to venue-specific anomalies</li><li>public explainability</li></ul>
+<h3>13.2 Target live oracle approach</h3>
+<p>The live product should use an index-style construction rather than a single venue last trade.</p>
+<p>A robust approach is:</p>
+<ul><li>sample from multiple liquid venues</li><li>median or robust-aggregate the prices</li><li>use short TWAP windows where needed</li><li>document the exact sampling cadence</li></ul>
+<p>This reduces sensitivity to single-venue spikes and makes the settlement basis easier to defend.</p>
+<h3>13.3 Why this matters</h3>
+<p>A path-scoring game is more sensitive to settlement quality than a simple &quot;final price above threshold&quot; market. The shape matters. That means:</p>
+<ul><li>bad data can distort several components at once</li><li>path glitches can falsely create or erase turning points</li><li>even short anomalies can change magnitude and volatility sub-scores</li></ul>
+<p>The oracle is therefore not a peripheral concern. It is core game infrastructure.</p>
+<h2>14. Product Psychology</h2>
+<p>DTC is not just a scoring engine. It is a product designed around how users want market participation to feel.</p>
+<h3>14.1 A single stroke expresses more than one bet</h3>
+<p>A drawn path can encode:</p>
+<ul><li>direction</li><li>conviction</li><li>expected timing</li><li>expected path smoothness</li><li>expected expansion or compression</li></ul>
+<p>That makes the user's input feel more intelligent than a binary button press.</p>
+<h3>14.2 Bounded loss changes the emotional texture</h3>
+<p>In leveraged trading, a thesis can be right in spirit and still fail because:</p>
+<ul><li>leverage was too high</li><li>entry timing was poor</li><li>noise caused liquidation</li><li>risk management was misconfigured</li></ul>
+<p>DTC removes many of those variables. The user is judged on the thesis path, not on execution mechanics. That creates a different emotional profile:</p>
+<ul><li>less frustration from execution details</li><li>more focus on whether the read was correct</li><li>stronger replay and learning loop</li></ul>
+<h3>14.3 It should feel like charting, not like spinning</h3>
+<p>This is why the product needs:</p>
+<ul><li>candle context</li><li>TA support tools</li><li>dense numerical framing</li><li>clear before/after comparison</li></ul>
+<p>The interface should communicate analytical play even though the product ultimately settles as a house-vs-player game.</p>
+<h2>15. Architecture</h2>
+<h3>15.1 Frontend</h3>
+<p>The frontend is a React and TypeScript application centered around:</p>
+<ul><li>a chart canvas</li><li>a future-zone draw overlay</li><li>TA overlays</li><li>score reveal states</li><li>payout visualization</li></ul>
+<h3>15.2 Scoring module</h3>
+<p>The scoring engine is a standalone pure module. This is one of the most important architecture decisions in the project. It enables:</p>
+<ul><li>unit testing</li><li>backtesting</li><li>reproducibility</li><li>future independent verification</li></ul>
+<h3>15.3 Backend</h3>
+<p>The current backend is a simple Node and Express sandbox API. It exposes:</p>
+<ul><li>health endpoint</li><li>config endpoint</li><li>round start</li><li>round submit</li><li>round settle</li><li>round replay</li></ul>
+<p>The current implementation is deliberately in-memory and non-production. Its purpose is to support sandbox workflow validation, not to claim launch readiness.</p>
+<h2>16. Current Product Status</h2>
+<p>The current state of DTC can be summarized as follows.</p>
+<h3>16.1 What is already strong</h3>
+<ul><li>the core mechanic is differentiated</li><li>the scoring engine is implemented and tested</li><li>the payout curve is explicit</li><li>the backtest calibration is in-band on key baselines</li><li>the sandbox flow is credible enough to evaluate the product</li></ul>
+<h3>16.2 What is still unfinished</h3>
+<ul><li>live bankroll management</li><li>wallet and balance flows</li><li>persistent accounts</li><li>full settlement infrastructure</li><li>stronger live oracle design</li><li>production operational controls</li><li>a chart stack comparable to licensed exchange-grade chart suites</li></ul>
+<p>That last point matters. Many perp venues use TradingView's full charting library stack. DTC currently uses a custom charting stack designed around the draw mechanic. That is the right choice for the MVP, but the product should remain honest about the difference.</p>
+<h2>17. Roadmap</h2>
+<h3>Phase 1: Scoring engine and backtesting</h3>
+<p>Completed or substantially completed:</p>
+<ul><li>pure scoring functions</li><li>tests for component behavior</li><li>strategy harness</li><li>baseline tuning</li></ul>
+<h3>Phase 2: Drawing UI</h3>
+<p>Substantially completed in sandbox form:</p>
+<ul><li>candlestick history</li><li>fixed future zone</li><li>freehand prediction capture</li><li>normalized path constraints</li><li>reveal state and comparison</li></ul>
+<h3>Phase 3: Sandbox game loop</h3>
+<p>Implemented in MVP form:</p>
+<ul><li>score output</li><li>payout preview</li><li>round reset and replay behavior</li><li>TA overlays for user guidance</li></ul>
+<h3>Phase 4: Live infrastructure</h3>
+<p>Still to be built:</p>
+<ul><li>real-time round lifecycle</li><li>persistent storage</li><li>wallet integration</li><li>exposure management</li><li>live settlement and payout execution</li><li>verifiable production-grade oracle stack</li></ul>
+<h3>Phase 5: Depth after core trust</h3>
+<p>Only after the live core is trustworthy should DTC expand into:</p>
+<ul><li>more assets</li><li>social sharing</li><li>public leaderboards tied to real performance</li><li>tournaments</li><li>advanced round formats</li></ul>
+<h2>18. Risks and Open Questions</h2>
+<h3>18.1 Interaction-quality risk</h3>
+<p>If the input does not feel precise and natural, the product loses credibility immediately. This is a product-quality risk, not merely a UI polish issue.</p>
+<p>Mitigation:</p>
+<ul><li>continued iteration on draw mechanics</li><li>aggressive browser testing</li><li>direct user playtesting</li></ul>
+<h3>18.2 Scoring-opacity risk</h3>
+<p>Even deterministic scoring can feel black-box if the user cannot visually connect the result to the reveal.</p>
+<p>Mitigation:</p>
+<ul><li>component breakdowns</li><li>replay UI</li><li>normalized-path visibility</li><li>public scoring documentation</li></ul>
+<h3>18.3 Oracle-quality risk</h3>
+<p>Path-based settlement is sensitive to data integrity.</p>
+<p>Mitigation:</p>
+<ul><li>multi-venue index</li><li>documented rules</li><li>conservative void or refund policy on anomalies</li></ul>
+<h3>18.4 Bankroll-correlation risk</h3>
+<p>Overlapping rounds can become correlated during strong BTC regimes.</p>
+<p>Mitigation:</p>
+<ul><li>reserve accounting</li><li>stake caps</li><li>live throttles</li><li>conservative initial launch size</li></ul>
+<h3>18.5 Regulatory risk</h3>
+<p>DTC clearly sits near gambling, prediction, and market-participation categories. Jurisdictional treatment may vary.</p>
+<p>Mitigation:</p>
+<ul><li>staged launch</li><li>legal review before real-money rollout</li><li>geo restrictions where required</li><li>responsible-use controls</li></ul>
+<h2>19. Responsible Use and Compliance Posture</h2>
+<p>DTC should not present itself as a substitute for investing or financial planning. It is a speculative entertainment product wrapped in a market-native interface.</p>
+<p>The live product should include, at minimum:</p>
+<ul><li>jurisdictional restrictions</li><li>age gating where required</li><li>self-exclusion tools</li><li>session and stake controls</li><li>clear loss disclosure</li></ul>
+<p>The fact that DTC feels more analytical than a casino product does not remove the need for responsible-use design. If anything, it increases the obligation to be explicit.</p>
+<h2>20. Token Position</h2>
+<p>DTC does not require a token to work.</p>
+<p>The core loop stands on its own:</p>
+<ul><li>draw</li><li>score</li><li>settle</li></ul>
+<p>Adding a token before product-market fit would likely distract from the real work:</p>
+<ul><li>hardening the mechanic</li><li>validating the economics</li><li>building trust</li></ul>
+<p>Any future token design should be considered optional and subordinate to the product, not central to it.</p>
+<h2>21. Conclusion</h2>
+<p>Draw The Chart exists because there is a real gap between what crypto users naturally do and what current products let them express.</p>
+<p>Users already think in chart paths. They already make scenario calls. They already want the feeling of reading the market without necessarily taking on the full complexity of leveraged execution or the poverty of binary input formats.</p>
+<p>DTC turns that behavior into a structured game:</p>
+<ul><li>expressive input</li><li>deterministic scoring</li><li>calibrated baselines</li><li>transparent payouts</li><li>replayable outcomes</li></ul>
+<p>The concept is strong precisely because it is narrow. It does not try to replace trading, prediction markets, or social charting. It creates a new product category at their overlap: a chart-native prediction game.</p>
+<p>The path to credibility is also narrow:</p>
+<ul><li>make the drawing feel excellent</li><li>keep the scoring honest</li><li>keep the economics legible</li><li>separate sandbox reality from live ambition</li></ul>
+<p>If those conditions are met, DTC can become a genuinely differentiated crypto product rather than another gambling surface dressed in market language.</p>
+<h2>Appendix A: Current Timeframe Configuration</h2>
+<table><thead><tr><th>Timeframe</th><th>Horizon</th><th>Display Candle Interval</th><th>Control Points</th></tr></thead><tbody><tr><td>15m</td><td>15 minutes</td><td>1m</td><td>8</td></tr><tr><td>1h</td><td>60 minutes</td><td>1m</td><td>12</td></tr><tr><td>6h</td><td>360 minutes</td><td>5m</td><td>16</td></tr><tr><td>24h</td><td>1,440 minutes</td><td>15m</td><td>16</td></tr><tr><td>7d</td><td>10,080 minutes</td><td>1h</td><td>16</td></tr></tbody></table>
+<h2>Appendix B: Current Scoring Parameters</h2>
+<table><thead><tr><th>Component</th><th>Parameter</th><th>Value</th></tr></thead><tbody><tr><td>Global</td><td>Resample points <code>N</code></td><td>120</td></tr><tr><td>Direction</td><td>Max scale level</td><td>4</td></tr><tr><td>Direction</td><td>Decay base</td><td>2.0</td></tr><tr><td>Magnitude</td><td>Lambda</td><td>1.35</td></tr><tr><td>Magnitude</td><td>Bias weight</td><td>0.5</td></tr><tr><td>Magnitude</td><td>Tracking weight</td><td>0.5</td></tr><tr><td>Turning Points</td><td>Smoothing fraction</td><td>0.05</td></tr><tr><td>Turning Points</td><td>Prominence multiple</td><td>0.3</td></tr><tr><td>Turning Points</td><td>Time tolerance</td><td>0.1</td></tr><tr><td>Turning Points</td><td>Hallucination penalty</td><td>0.2</td></tr><tr><td>Turning Points</td><td>Miss penalty</td><td>0.15</td></tr><tr><td>Volatility</td><td>Mu</td><td>1.8</td></tr><tr><td>Volatility</td><td>Quarters</td><td>4</td></tr></tbody></table>
+<h2>Appendix C: Launch Philosophy</h2>
+<p>The live version of DTC should launch only when the following are simultaneously true:</p>
+<ul><li>the draw interaction feels robust across devices</li><li>the scoring model remains calibrated under continued backtesting</li><li>the oracle and settlement pipeline are documented</li><li>bankroll risk controls are implemented and enforced</li><li>the product can explain any score it produces</li></ul>
+<p>Until then, the correct priority is not expansion. It is hardening.</p>
+  </main>
+</body>
+</html>

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist-web/
+data/
+.DS_Store
+.claude/
+.playwright-mcp/
+AGENTS.md
+CLAUDE.md
+SESSION_PROMPTS.md
+screenshot-*.png
+screenshots/

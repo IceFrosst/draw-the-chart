@@ -1,0 +1,45 @@
+{
+  "name": "dtc",
+  "version": "1.0.0",
+  "description": "Draw The Chart — crypto prediction game scoring engine",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build:server": "tsc",
+    "build:docs": "node scripts/exportWhitepaper.mjs",
+    "build:web": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "npm run build:server && npm run build:docs && npm run build:web",
+    "backtest": "npx tsx src/backtest/run.ts",
+    "economics": "npx tsx src/backtest/run.ts",
+    "fairness": "npx tsx src/backtest/runFairness.ts",
+    "server": "npx tsx src/server/index.ts",
+    "whitepaper:export": "node scripts/exportWhitepaper.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.2.1",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.3.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.4",
+    "playwright": "^1.58.2",
+    "tailwindcss": "^4.2.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "lightweight-charts": "^5.1.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.13.1"
+  }
+}
