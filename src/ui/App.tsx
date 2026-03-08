@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Outlet, useLocation } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
+import { PasswordGate } from './components/PasswordGate';
 
 const Landing = lazy(() =>
   import('./pages/Landing').then((module) => ({ default: module.Landing })),
@@ -80,18 +81,20 @@ function Layout() {
 
 export function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Landing />} />
-          <Route path="/play" element={<Game />} />
-          <Route path="/faq" element={<FAQ />} />
-          <Route path="/leaderboard" element={<Leaderboard />} />
-          <Route path="/whitepaper" element={<Whitepaper />} />
-          <Route path="/validate" element={<Validate />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <PasswordGate>
+      <BrowserRouter>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Landing />} />
+            <Route path="/play" element={<Game />} />
+            <Route path="/faq" element={<FAQ />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/whitepaper" element={<Whitepaper />} />
+            <Route path="/validate" element={<Validate />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </PasswordGate>
   );
 }
 

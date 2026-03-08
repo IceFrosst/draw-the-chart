@@ -17,6 +17,9 @@ import {
   createRoundHistoryEntry,
   loadRoundHistory,
 } from '../lib/roundHistory';
+import { isSupabaseConfigured } from '../../lib/supabase';
+import { persistRound, type RoundInsertData } from '../../lib/roundPersistence';
+import { FeedbackModal } from '../components/FeedbackModal';
 
 const TIMEFRAME_KEYS: TimeframeKey[] = ['15m', '1h', '6h', '24h', '7d'];
 const DEFAULT_TIMEFRAME: TimeframeKey = '1h';
@@ -151,6 +154,9 @@ export function Game() {
   const replayRef = useRef<number>(0);
   const copyTimeoutRef = useRef<number | null>(null);
   const savedHistoryEntryIdRef = useRef<string | null>(null);
+  const lockTimestampRef = useRef<number | null>(null);
+  const [supabaseRoundId, setSupabaseRoundId] = useState<string | null>(null);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [linkStatus, setLinkStatus] = useState<'idle' | 'copied' | 'error'>('idle');
   const [drawGuideCollapsed, setDrawGuideCollapsed] = useState<boolean>(() =>
     readStoredDrawGuideCollapsed(),
@@ -202,6 +208,7 @@ export function Game() {
     savedHistoryEntryIdRef.current = null;
     setShowAdvancedTools(false);
     setActiveTATool('none');
+    lockTimestampRef.current = Date.now();
     setRoundSeed(Date.now());
     setLocked(true);
     setPhase('drawing');
@@ -291,6 +298,9 @@ export function Game() {
     setChartApi(null);
     setSeriesApi(null);
     savedHistoryEntryIdRef.current = null;
+    lockTimestampRef.current = null;
+    setSupabaseRoundId(null);
+    setShowFeedbackModal(false);
     replayRef.current++;
   }, []);
 
@@ -507,6 +517,36 @@ export function Game() {
     const nextEntries = appendRoundHistory(roundHistoryEntry);
     setRoundLogCount(nextEntries.length);
     savedHistoryEntryIdRef.current = roundHistoryEntry.id;
+
+    // Persist to Supabase in parallel (non-blocking)
+    if (isSupabaseConfigured() && resampledPath && future.length > 0 && roundSeed != null && roundCode != null) {
+      const anchorPrice = history.length > 0 ? history[history.length - 1]!.close : 0;
+      const actualPrices = [anchorPrice, ...future.map((c) => c.close)];
+      const predictedPrices = resampledPath.map((p) => p.price);
+
+      persistRound({
+        seed: roundSeed,
+        roundCode,
+        timeframe,
+        stake,
+        predictedPrices,
+        actualPrices,
+        score: roundHistoryEntry.score,
+        payoutMultiplier: roundHistoryEntry.payout.multiplier,
+        payoutAmount: roundHistoryEntry.payout.payout,
+        payoutProfit: roundHistoryEntry.payout.profit,
+        drawingPointCount: drawnPath?.length ?? 0,
+        drawingDurationSeconds: lockTimestampRef.current
+          ? (Date.now() - lockTimestampRef.current) / 1000
+          : 0,
+      }).then((id) => {
+        if (id) {
+          setSupabaseRoundId(id);
+          setShowFeedbackModal(true);
+        }
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roundHistoryEntry]);
 
   useEffect(() => {
@@ -1010,65 +1050,71 @@ export function Game() {
         {/* Score breakdown overlay */}
         {phase === 'submitted' && score && !isReplaying && !scoreHidden && (
           <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-30 flex flex-col sm:flex-row gap-2 sm:gap-3 animate-slide-in max-h-[calc(100%-16px)] overflow-y-auto">
-            <div
-              className="dtc-panel p-3 sm:p-4 relative"
-              style={{
-                background: 'rgba(17, 17, 19, 0.96)',
-                backdropFilter: 'blur(8px)',
-              }}
-            >
-              <button
-                onClick={() => setScoreHidden(true)}
-                className="absolute top-2 right-2 w-5 h-5 flex items-center justify-center"
-                style={{ color: 'var(--text-secondary)', background: 'transparent', fontSize: '14px', lineHeight: 1 }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'transparent'; }}
-                aria-label="Hide score"
+            {/* Left column: Score Breakdown + Payout Curve stacked */}
+            <div className="flex flex-col gap-2 sm:gap-3">
+              <div
+                className="dtc-panel p-3 sm:p-4 relative"
+                style={{
+                  background: 'rgba(17, 17, 19, 0.96)',
+                  backdropFilter: 'blur(8px)',
+                }}
               >
-                ×
-              </button>
-              <div className="dtc-eyebrow mb-1 sm:mb-2">Score Breakdown</div>
-              <div className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-3 dtc-data animate-count-up" style={{
-                color: score.total >= 60 ? 'var(--green)' : score.total >= 40 ? 'var(--accent)' : 'var(--red)',
-              }}>
-                {score.total.toFixed(1)}
-                <span className="text-xs sm:text-sm font-normal" style={{ color: 'var(--text-secondary)' }}> / 100</span>
-              </div>
-              <div className="space-y-1 sm:space-y-1.5 text-xs">
-                <ScoreRow label="Direction" value={score.direction} max={40} />
-                <ScoreRow label="Magnitude" value={score.magnitude} max={30} />
-                <ScoreRow label="Turning Pts" value={score.turningPoints} max={20} />
-                <ScoreRow label="Volatility" value={score.volatility} max={10} />
-              </div>
-              {payoutInfo && (
-                <div className="mt-2 sm:mt-3 pt-2 sm:pt-3" style={{ borderTop: '1px solid var(--border)' }}>
-                  <div className="flex justify-between gap-6 sm:gap-8 text-xs">
-                    <span style={{ color: 'var(--text-secondary)' }}>Multiplier</span>
-                    <span className="font-semibold dtc-data" style={{ color: payoutInfo.multiplier >= 1 ? 'var(--green)' : 'var(--red)' }}>
-                      {payoutInfo.multiplier.toFixed(2)}x
-                    </span>
-                  </div>
-                  <div className="flex justify-between gap-6 sm:gap-8 text-xs mt-1">
-                    <span style={{ color: 'var(--text-secondary)' }}>${stake} Stake</span>
-                    <span className="font-semibold dtc-data" style={{ color: payoutInfo.profit >= 0 ? 'var(--green)' : 'var(--red)' }}>
-                      {payoutInfo.profit >= 0 ? '+' : ''}{payoutInfo.profit.toFixed(2)}
-                    </span>
-                  </div>
+                <button
+                  onClick={() => setScoreHidden(true)}
+                  className="absolute top-2 right-2 w-5 h-5 flex items-center justify-center"
+                  style={{ color: 'var(--text-secondary)', background: 'transparent', fontSize: '14px', lineHeight: 1 }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'transparent'; }}
+                  aria-label="Hide score"
+                >
+                  ×
+                </button>
+                <div className="dtc-eyebrow mb-1 sm:mb-2">Score Breakdown</div>
+                <div className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-3 dtc-data animate-count-up" style={{
+                  color: score.total >= 60 ? 'var(--green)' : score.total >= 40 ? 'var(--accent)' : 'var(--red)',
+                }}>
+                  {score.total.toFixed(1)}
+                  <span className="text-xs sm:text-sm font-normal" style={{ color: 'var(--text-secondary)' }}> / 100</span>
                 </div>
-              )}
-              <div className="hidden sm:flex mt-3 pt-2 flex-wrap items-center gap-3 text-xs" style={{ borderTop: '1px solid var(--border)' }}>
-                <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-0.5 rounded" style={{ background: 'var(--accent)' }} />
-                  <span style={{ color: 'var(--text-secondary)' }}>Drawing</span>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-0.5 rounded" style={{ background: 'rgba(212, 168, 92, 0.36)', borderBottom: '1px dotted rgba(212, 168, 92, 0.56)' }} />
-                  <span style={{ color: 'var(--text-secondary)' }}>Resampled</span>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-0.5 rounded" style={{ background: 'var(--teal)' }} />
-                  <span style={{ color: 'var(--text-secondary)' }}>Actual</span>
-                </span>
+                <div className="space-y-1 sm:space-y-1.5 text-xs">
+                  <ScoreRow label="Direction" value={score.direction} max={40} />
+                  <ScoreRow label="Magnitude" value={score.magnitude} max={30} />
+                  <ScoreRow label="Turning Pts" value={score.turningPoints} max={20} />
+                  <ScoreRow label="Volatility" value={score.volatility} max={10} />
+                </div>
+                {payoutInfo && (
+                  <div className="mt-2 sm:mt-3 pt-2 sm:pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+                    <div className="flex justify-between gap-6 sm:gap-8 text-xs">
+                      <span style={{ color: 'var(--text-secondary)' }}>Multiplier</span>
+                      <span className="font-semibold dtc-data" style={{ color: payoutInfo.multiplier >= 1 ? 'var(--green)' : 'var(--red)' }}>
+                        {payoutInfo.multiplier.toFixed(2)}x
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-6 sm:gap-8 text-xs mt-1">
+                      <span style={{ color: 'var(--text-secondary)' }}>${stake} Stake</span>
+                      <span className="font-semibold dtc-data" style={{ color: payoutInfo.profit >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                        {payoutInfo.profit >= 0 ? '+' : ''}{payoutInfo.profit.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                <div className="hidden sm:flex mt-3 pt-2 flex-wrap items-center gap-3 text-xs" style={{ borderTop: '1px solid var(--border)' }}>
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block w-3 h-0.5 rounded" style={{ background: 'var(--accent)' }} />
+                    <span style={{ color: 'var(--text-secondary)' }}>Drawing</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block w-3 h-0.5 rounded" style={{ background: 'rgba(212, 168, 92, 0.36)', borderBottom: '1px dotted rgba(212, 168, 92, 0.56)' }} />
+                    <span style={{ color: 'var(--text-secondary)' }}>Resampled</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block w-3 h-0.5 rounded" style={{ background: 'var(--teal)' }} />
+                    <span style={{ color: 'var(--text-secondary)' }}>Actual</span>
+                  </span>
+                </div>
+              </div>
+              <div className="hidden sm:block">
+                <PayoutCurve currentScore={score.total} />
               </div>
             </div>
             {roundAssessment && (
@@ -1133,9 +1179,6 @@ export function Game() {
                 </div>
               </div>
             )}
-            <div className="hidden sm:block">
-              <PayoutCurve currentScore={score.total} />
-            </div>
           </div>
         )}
         {phase === 'submitted' && score && !isReplaying && scoreHidden && (
@@ -1293,6 +1336,16 @@ export function Game() {
           )}
         </div>
       </footer>
+
+      {showFeedbackModal && supabaseRoundId && score && payoutInfo && (
+        <FeedbackModal
+          roundId={supabaseRoundId}
+          score={score}
+          multiplier={payoutInfo.multiplier}
+          onClose={() => setShowFeedbackModal(false)}
+          onSubmitted={() => setShowFeedbackModal(false)}
+        />
+      )}
     </div>
   );
 }
