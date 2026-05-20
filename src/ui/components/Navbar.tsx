@@ -6,7 +6,6 @@ const NAV_LINKS = [
   { to: '/leaderboard', label: 'Journal' },
   { to: '/faq', label: 'Docs' },
   { to: '/whitepaper', label: 'Paper' },
-  { to: '/validate', label: 'Validate' },
 ];
 
 export function Navbar() {
