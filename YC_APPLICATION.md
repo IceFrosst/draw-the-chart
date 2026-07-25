@@ -27,7 +27,7 @@ Prediction markets where you draw the chart.
 
 ## Supporting one-paragraph description (for the longer field that follows)
 
-Draw The Chart is a prediction market where the input is a drawing instead of a yes/no click. A round opens at a locked BTC anchor; the player draws the price path they expect over a fixed horizon (15m to 7d), stakes on it, and a deterministic engine scores the drawn path against the realized market path in log-return space across four components — direction (40), magnitude (30), turning points (20), and volatility regime (10). The score maps to a published payout curve: below 60/100 is a partial refund with a 0.40x floor, above it is convex up to 25x, with a 2% house edge. The scoring engine is built and calibrated against 302k historical BTC candles (a random walk scores 30–35, a near-perfect path 98–100), and a full sandbox game loop is live at https://draw-the-chart-eight.vercel.app. What remains for the live product is settlement infrastructure — wallet auth, a price oracle, and bankroll controls — not the mechanic.
+Draw The Chart is a prediction market where the input is a drawing instead of a yes/no click. A round opens at a locked BTC anchor; the player draws the price path they expect over a fixed horizon (15m to 7d), stakes on it, and a deterministic engine scores the drawn path against the realized market path in log-return space across four components — direction (40), magnitude (30), turning points (20), and volatility regime (10). The score maps to a published payout curve: below 60/100 is a partial refund with a 0.40x floor, above it is convex up to 25x, with a 2% house edge. The scoring engine is built and calibrated against 302k historical BTC candles (a random walk scores 30–35, a near-perfect path 98–100), and a full sandbox game loop is live at https://drawthechart.xyz. What remains for the live product is settlement infrastructure — wallet auth, a price oracle, and bankroll controls — not the mechanic.
 
 ## Extended alternates (by strategic frame)
 
@@ -97,7 +97,7 @@ Draw The Chart is a prediction market where you bet on the shape of a price path
 
 A round opens at a locked BTC price. You see the historical chart up to that moment, pick a horizon (15 minutes to 7 days), stake an amount, and draw the path you think BTC will take — freehand, directly on the chart. When the horizon closes, a deterministic engine scores your drawing against what BTC actually did, in log-return space, across four components: direction (40 points), magnitude (30), turning points (20), and volatility regime (10). The score maps to a published payout curve — below 60/100 you get a partial refund, floored at 0.40x; above it the multiplier goes convex to a 25x cap. It's house-vs-player, so rounds are always available with no need to match an opposing view. The house edge is 2% and every parameter is public.
 
-The scoring engine is built and calibrated against 302,000 historical BTC candles: a random walk scores 30-35, a flat line 23-35, a near-perfect path 98-100. The full loop is playable today in sandbox at draw-the-chart-eight.vercel.app, and every round we run captures whether the player thought the score was fair, what they'd have scored it themselves, and whether they'd have staked real money on it.
+The scoring engine is built and calibrated against 302,000 historical BTC candles: a random walk scores 30-35, a flat line 23-35, a near-perfect path 98-100. The full loop is playable today in sandbox at drawthechart.xyz, and every round we run captures whether the player thought the score was fair, what they'd have scored it themselves, and whether they'd have staked real money on it.
 
 Three things stand between the sandbox and a live product: wallet auth, a price oracle for settlement, and bankroll risk controls. The mechanic is done — the scoring engine is the hard part and it works.
 
@@ -124,7 +124,7 @@ Two things make this the moment for it. Retail traders already draw on charts; i
 
 A round opens at a locked BTC price. You see the historical chart up to that moment, pick a horizon (15 minutes to 7 days), stake an amount, and draw the path you think BTC will take — freehand, directly on the chart. When the horizon closes, a deterministic engine scores your drawing against what BTC actually did, in log-return space, across four components: direction (40 points), magnitude (30), turning points (20), and volatility regime (10). The score maps to a published payout curve — below 60/100 you get a partial refund, floored at 0.40x; above it the multiplier goes convex to a 25x cap. It's house-vs-player, so rounds are always available with no need to match an opposing view. The house edge is 2% and every parameter is public.
 
-The scoring engine is built and calibrated against 302,000 historical BTC candles: a random walk scores 30-35, a flat line 23-35, a near-perfect path 98-100. The full loop is playable today in sandbox at draw-the-chart-eight.vercel.app, and every round we run captures whether the player thought the score was fair, what they'd have scored it themselves, and whether they'd have staked real money on it.
+The scoring engine is built and calibrated against 302,000 historical BTC candles: a random walk scores 30-35, a flat line 23-35, a near-perfect path 98-100. The full loop is playable today in sandbox at drawthechart.xyz, and every round we run captures whether the player thought the score was fair, what they'd have scored it themselves, and whether they'd have staked real money on it.
 
 Three things stand between the sandbox and a live product: wallet auth, a price oracle for settlement, and bankroll risk controls. The mechanic is done — the scoring engine is the hard part and it works.
 
@@ -228,7 +228,7 @@ The behavior already exists. Retail traders draw on charts every day, on every c
 
 A round opens at a locked asset price. You pick a time horizon (from minutes to days), stake an amount, and draw the price action you expect. Then our engine scores your drawing against what really happened, and you win or lose depending on your accuracy.
 
-Optional closing line: It's playable today at draw-the-chart-eight.vercel.app.
+Optional closing line: It's playable today at drawthechart.xyz.
 
 ### Edits applied to the mechanic paragraph (typos/accuracy only)
 

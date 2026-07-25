@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { LoopScroller } from '../components/LoopScroller';
 import { DEFAULT_PAYOUT_CONFIG, getBreakEvenScore } from '../../scoring/payout';
 import {
   formatMoney,
@@ -156,87 +157,12 @@ export function Landing() {
         </div>
       </section>
 
-      {/* Chart preview + Payout table side by side */}
-      <section className="px-4 pb-6 max-w-4xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-4">
-          {/* Example chart */}
-          <div className="dtc-panel p-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="dtc-eyebrow">Example Round</span>
-              <span className="dtc-data text-xs" style={{ color: 'var(--text-muted)' }}>
-                BTC/USDT 1h
-              </span>
-            </div>
-            <svg viewBox="0 0 600 220" className="w-full" style={{ display: 'block' }}>
-              <rect x="0" y="0" width="600" height="220" rx="4" fill="var(--bg-primary)" />
-              {/* Grid */}
-              {[50, 100, 150, 190].map((y) => (
-                <line key={y} x1="0" y1={y} x2="600" y2={y} stroke="rgba(255,255,255,0.03)" />
-              ))}
-              {/* NOW line */}
-              <rect x="340" y="0" width="260" height="220" fill="rgba(91,141,239,0.03)" />
-              <line x1="340" y1="0" x2="340" y2="220" stroke="rgba(255,255,255,0.12)" strokeDasharray="3 3" />
-              <text x="340" y="214" textAnchor="middle" fill="var(--text-muted)" fontSize="9" fontFamily="JetBrains Mono">
-                NOW
-              </text>
-              {/* History */}
-              <polyline
-                points="20,130 55,120 90,128 130,108 170,113 210,98 250,106 290,84 320,92 340,88"
-                fill="none"
-                stroke="var(--text-secondary)"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              {/* Prediction */}
-              <polyline
-                points="340,88 380,70 420,82 460,58 500,72 550,44"
-                fill="none"
-                stroke="var(--accent)"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              {/* Actual */}
-              <polyline
-                points="340,88 385,96 425,70 458,76 488,68 520,66 558,74"
-                fill="none"
-                stroke="var(--green)"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeDasharray="4 2"
-              />
-              {/* Anchor */}
-              <circle cx="340" cy="88" r="4" fill="var(--bg-primary)" stroke="var(--accent)" strokeWidth="1.5" />
-              {/* Legend */}
-              <line x1="400" y1="186" x2="420" y2="186" stroke="var(--accent)" strokeWidth="2" />
-              <text x="424" y="189" fill="var(--text-muted)" fontSize="9" fontFamily="JetBrains Mono">Predicted</text>
-              <line x1="490" y1="186" x2="510" y2="186" stroke="var(--green)" strokeWidth="1.5" strokeDasharray="4 2" />
-              <text x="514" y="189" fill="var(--text-muted)" fontSize="9" fontFamily="JetBrains Mono">Actual</text>
-            </svg>
-            <div
-              className="flex items-center justify-between mt-3 pt-3"
-              style={{ borderTop: '1px solid var(--border)' }}
-            >
-              <div className="flex items-center gap-4">
-                <div>
-                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Score</span>
-                  <span className="dtc-data text-sm font-semibold ml-2" style={{ color: 'var(--text-primary)' }}>72.0</span>
-                </div>
-                <div>
-                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Mult</span>
-                  <span className="dtc-data text-sm font-semibold ml-2" style={{ color: 'var(--green)' }}>2.60x</span>
-                </div>
-              </div>
-              <div>
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>$100 stake</span>
-                <span className="dtc-data text-sm font-semibold ml-2" style={{ color: 'var(--green)' }}>+$160</span>
-              </div>
-            </div>
-          </div>
+      {/* Scroll-driven walkthrough of a full round */}
+      <LoopScroller />
 
-          {/* Payout curve table */}
+      {/* Payout reference table */}
+      <section className="px-4 pt-2 pb-6 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1">
           <div className="dtc-panel p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="dtc-eyebrow">Payout Curve</span>

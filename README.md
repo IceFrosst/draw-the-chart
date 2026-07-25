@@ -2,7 +2,7 @@
 
 A BTC price-path prediction game where you draw the expected future move instead of placing a binary bet or managing a leveraged position.
 
-**[Live Demo](https://draw-the-chart-eight.vercel.app/play?tf=1h)**
+**[Live Demo](https://drawthechart.xyz/play?tf=1h)**
 
 ---
 
