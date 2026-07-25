@@ -246,3 +246,42 @@ The four scoring components, the 302k-candle calibration (random walk 30-35, nea
 98-100), the payout floor/cap, and the round-feedback capture are the strongest material
 in this repo. They answer "How far along are you?" rather than "What do you make?" — keep
 them for that field.
+
+## "Explain your decision regarding location." (Kaunas, Lithuania / Kaunas, Lithuania)
+
+### Recommended answer (~160 words)
+
+I'm from Kaunas — my team, network, and cost base are here, which means we can build for years on what a few months would cost in San Francisco. I'll be in SF full-time for the batch.
+
+Staying afterward is deliberate, not default. Our product needs payments and licensing infrastructure, and Lithuania is the EU's largest fintech licensing hub: the Bank of Lithuania reviews e-money applications in about three months, several times faster than most EU regulators. The EU also gives us a clearer near-term path to a licensed launch than the US does.
+
+And the ecosystem here is compounding. Lithuania's startup ecosystem passed €16.4B in value in 2025, VC funding grew 1.7x year over year, and it has grown 5.9x in five years — roughly four times the CEE average. Vinted and Nord Security both came out of a country of under 3 million people. Notably, only 26% of Lithuanian scaleups relocate their HQ, the lowest rate in the region: you can build a global company from here without leaving.
+
+### Short version (~100 words)
+
+I'm from Kaunas — team, network, and cost base are all here, so our runway goes much further than it would in SF. I'll be in San Francisco full-time for the batch.
+
+Staying is deliberate. Lithuania is the EU's largest fintech licensing hub, and the Bank of Lithuania moves faster than most EU regulators — which matters for a product that needs payments and licensing. The ecosystem is compounding too: €16.4B in value in 2025, VC funding up 1.7x year over year, 5.9x growth in five years. Only 26% of Lithuanian scaleups move their HQ abroad, the lowest rate in the region.
+
+### Supporting data
+
+| Claim | Source |
+|---|---|
+| EUR 16.4B ecosystem value, 2025 | Dealroom report initiated by Startup Lithuania |
+| EUR 131M -> 221M VC funding, 1.7x YoY | same |
+| 5.9x growth over 5 years vs 1.6x CEE average | same |
+| 26% HQ relocation, lowest in CEE (Estonia 50%, Latvia 70%) | same |
+| Vilnius = EU's largest fintech hub by licences issued, 280+ fintechs | Bank of Lithuania / industry reporting |
+| ~3-month EMI/PI review, 2-4x faster than most EU | Bank of Lithuania published service standard |
+
+### Notes
+
+- **The 26% relocation stat is the strongest line in the answer.** It reframes staying in
+  Lithuania from a limitation into the documented regional norm, and it directly answers
+  the question being asked rather than deflecting it.
+- **Only keep the SF sentence if it is true.** This field's real screen is willingness to
+  attend in person — the batch opens with a 3-day retreat and runs weekly meetups in San
+  Francisco. A mismatch discovered at interview costs more than the sentence gains.
+- **The licensing claim is deliberately modest** ("a clearer near-term path"). EU gambling
+  licences do not passport between member states, so a stronger claim invites a question
+  that cannot be answered until the product's regulatory classification is settled.
