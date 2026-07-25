@@ -332,3 +332,28 @@ and needs no defending. The real gaps are in what a live, real-money product req
 - **Move `public/btc_1m_candles.json` (7.6MB) to object storage** before real traffic.
 - **Log raw oracle feed data per round.** Settlement price disputes are an existential risk
   for this product; replayability is the defence.
+
+### FINAL tech stack answer (concise, gaps patched)
+
+TypeScript end to end, React and Vite on the front end, Express for the round API. TradingView's open-source charts for rendering, with a custom freehand drawing layer on top. Vercel for hosting, Supabase for the database, and Pyth or Chainlink as the oracle when we go live. 50 tests, including calibration guardrails that fail if the payout curve drifts.
+
+Deliberately no AI in the scoring path. Scores come from plain math — log-return resampling, Gaussian smoothing, Hungarian matching for turning points. A model in that loop would make payouts unexplainable, which is the fastest way to lose trust in a product like this.
+
+For building: Claude Code as the main tool, Codex and Grok for review passes.
+
+### What the trimmed draft was missing
+
+1. **The stack itself** — TypeScript, React, Vite, Express were all dropped, leaving a
+   charting library as the opening and no statement of what the app is written in.
+   TypeScript strict mode is a real signal for a product that moves money.
+2. **The tests** — 50 tests with calibration and economic guardrails are the only part of
+   the stack that *enforces* the "scoring isn't arbitrary" claim the whole pitch rests on.
+3. **"Plain math" left unsupported** — naming log-return resampling, Gaussian smoothing,
+   and Hungarian matching turns the assertion into a demonstrated decision.
+4. **Oracle stated as shipped** — "our oracle" sat in a list with live services. It is
+   planned, and the question explicitly permits "planning to use."
+5. **"LLM" narrowed the argument** — any learned model makes the score unexplainable, not
+   just language models. "A model in that loop" is the stronger claim.
+
+Also: give each AI coding tool a one-word role. A flat list of three reads as collecting
+rather than using.
