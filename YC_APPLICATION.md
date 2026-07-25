@@ -88,3 +88,30 @@ The recommended line sells **category**. "Prediction markets with partial credit
 sells **insight**. "Perps without leverage. You just draw." sells **substitution**
 against a market doing >$100B/mo. Any of the three is defensible; pick based on which
 story the rest of the application tells.
+
+## "What is your company going to make? Please describe your product and what it does or will do."
+
+### Recommended answer (~230 words)
+
+Draw The Chart is a prediction market where you bet on the shape of a price path instead of a yes/no outcome.
+
+A round opens at a locked BTC price. You see the historical chart up to that moment, pick a horizon (15 minutes to 7 days), stake an amount, and draw the path you think BTC will take — freehand, directly on the chart. When the horizon closes, a deterministic engine scores your drawing against what BTC actually did, in log-return space, across four components: direction (40 points), magnitude (30), turning points (20), and volatility regime (10). The score maps to a published payout curve — below 60/100 you get a partial refund, floored at 0.40x; above it the multiplier goes convex to a 25x cap. It's house-vs-player, so rounds are always available with no need to match an opposing view. The house edge is 2% and every parameter is public.
+
+The scoring engine is built and calibrated against 302,000 historical BTC candles: a random walk scores 30-35, a flat line 23-35, a near-perfect path 98-100. The full loop is playable today in sandbox at draw-the-chart-eight.vercel.app, and every round we run captures whether the player thought the score was fair, what they'd have scored it themselves, and whether they'd have staked real money on it.
+
+Three things stand between the sandbox and a live product: wallet auth, a price oracle for settlement, and bankroll risk controls. The mechanic is done — the scoring engine is the hard part and it works.
+
+### Short version (~110 words)
+
+Draw The Chart is a prediction market where you bet on the shape of a price path, not a yes/no outcome.
+
+A round opens at a locked BTC price. You pick a horizon (15 minutes to 7 days), stake an amount, and draw the path you expect — freehand, on the chart. A deterministic engine scores your drawing against the real path across four components: direction, magnitude, turning points, and volatility regime. Below 60/100 is a partial refund floored at 0.40x; above it the payout goes convex to 25x. House edge is 2%, every parameter public.
+
+The engine is calibrated against 302,000 BTC candles — a random walk scores 30-35, a near-perfect path 98-100 — and the full loop is playable in sandbox today. Wallet auth, a settlement oracle, and bankroll controls are what's left.
+
+### Notes on the choices
+
+- **Specific numbers over adjectives.** The component weights and calibration bands prove the thing is built and that real decisions were made. "A random walk scores 30-35" is the single most load-bearing sentence — it shows the scoring isn't arbitrary.
+- **Honest closing gap list.** Naming the three missing pieces (wallet auth, oracle, bankroll controls) reads as competence and signals that none of the remaining work is the risky part. Claiming more than the sandbox delivers would be contradicted by the live link.
+- **Feedback instrumentation is called out** because `supabase/migrations/001_initial_schema.sql` really does capture `fairness_vote`, `self_assessed_score`, and `would_bet_real_money` per round — evidence we are measuring the risk that actually kills this product (players perceiving the score as unfair) before taking money.
+- **Licensing/jurisdiction deliberately omitted.** The field asks what the product is; raising regulation here spends the strongest paragraph on defense. Answer it where YC asks directly, but have a real answer prepared.
