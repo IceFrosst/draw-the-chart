@@ -165,3 +165,34 @@ Changed:
 - **"one of the fastest-growing categories" → "gone from niche to mainstream in two years."** The draft dropped the noun ("categories of what?"); the replacement avoids inviting a numbers correction from a reader who knows the volumes.
 - **Cut "Until now."** It pre-announced the reveal the next clause delivers, making one point twice.
 - **"new financial instrument" kept but attached to its definition.** "A new instrument priced on the shape of a path rather than a binary outcome" reads as precision instead of grandiosity, and is defensible: a payoff that is a function of an entire path is what an exotic derivative is.
+
+### Alternatives to "a new financial instrument"
+
+The closing clause of paragraph 2 needs the ambition of "new instrument" without the
+follow-up question "which regulator classifies it as one?" Options, safest first:
+
+| Replacement | Buys | Costs |
+|---|---|---|
+| (drop the noun) "...the position. The payout is priced on the shape of the path, not a binary outcome." | Nothing to attack; states the mechanism and lets the reader name it | Gives up the category-creation flourish |
+| **a new market primitive** | Same ambition; "primitive" is design language, not a legal classification | Mild jargon, reads VC-fluent |
+| partial credit instead of pass/fail | Ties to the tagline shortlist so the application argues one idea throughout | Slightly soft alone |
+| a continuous payoff instead of a binary one | Most precise; the precision is itself credible | Technical register |
+| a new bet type | Maximally plain | Pulls the frame toward gambling |
+| a market on shape, not outcome | Compresses the thesis into five words | Abstract without the preceding sentence |
+| a new contract type | Sounds substantial | "Contract" is also a regulated noun — same problem |
+| a new asset class | Biggest claim available | Overreach, and keeps the regulatory question. Avoid |
+
+**Recommended: "a new market primitive."** Preserves the signal that this is a category
+rather than a feature, while swapping a legally loaded noun for one from product/design
+vocabulary.
+
+Paragraph 2 with the recommended swap:
+
+The behavior already exists. Retail traders draw on charts every day, on every charting app, for free. And prediction markets have gone from niche to mainstream in two years. Nobody has connected the two: the drawing stays a screenshot, the market stays a yes/no. We make the drawing itself the position — a new market primitive, priced on the shape of a path rather than a binary outcome.
+
+Zero-exposure variant:
+
+...Nobody has connected the two: the drawing stays a screenshot, the market stays a yes/no. We make the drawing itself the position. The payout is priced on the shape of the path, not a binary outcome.
+
+A reader who thinks in categories supplies "that's a new instrument" unprompted, and a
+conclusion the reader reaches is worth more than an asserted one.
