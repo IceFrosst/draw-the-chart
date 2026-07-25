@@ -37,6 +37,15 @@ const FOOTER_PRIMARY_BUTTON_CLASS =
 
 type GamePhase = 'setup' | 'drawing' | 'submitted';
 
+/** Tailwind's `sm` breakpoint — below it the chart pane is too narrow to share
+ *  with the score panel. */
+const SCORE_PANEL_MIN_WIDTH = 640;
+
+function startsWithScoreCollapsed(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth < SCORE_PANEL_MIN_WIDTH;
+}
+
 function getToolLabel(tool: TAToolType): string {
   switch (tool) {
     case 'trendline':
@@ -147,7 +156,10 @@ export function Game() {
   const [score, setScore] = useState<ScoreBreakdown | null>(null);
   const [replayProgress, setReplayProgress] = useState<number>(0);
   const [isReplaying, setIsReplaying] = useState(false);
-  const [scoreHidden, setScoreHidden] = useState(false);
+  // On phones the breakdown panel would cover the chart, hiding the drawing-vs-actual
+  // comparison that is the point of the reveal. Start it collapsed there — the footer
+  // still shows the total, and "Show Score" opens the full breakdown.
+  const [scoreHidden, setScoreHidden] = useState(startsWithScoreCollapsed);
   const [stake, setStake] = useState<number>(() => readStoredStake());
   const [resampledPath, setResampledPath] = useState<DrawnPoint[] | null>(null);
   const [roundLogCount, setRoundLogCount] = useState<number>(() => loadRoundHistory().length);
@@ -291,7 +303,7 @@ export function Game() {
     setScore(null);
     setReplayProgress(0);
     setIsReplaying(false);
-    setScoreHidden(false);
+    setScoreHidden(startsWithScoreCollapsed());
     setLinkStatus('idle');
     setShowAdvancedTools(false);
     setActiveTATool('none');
@@ -666,8 +678,13 @@ export function Game() {
             </span>
           )}
           {roundSeed != null && phase !== 'setup' && (
-            <span className="hidden md:inline dtc-chip" style={{ color: 'var(--text-secondary)' }}>
-              round {roundCode}
+            /* Wrapper carries the responsive display: `.dtc-chip` sets `display:
+               inline-flex` from unlayered CSS, which outranks Tailwind's `hidden`
+               utility, so `hidden md:inline` on the chip itself never applied. */
+            <span className="hidden md:contents">
+              <span className="dtc-chip" style={{ color: 'var(--text-secondary)' }}>
+                round {roundCode}
+              </span>
             </span>
           )}
         </div>
@@ -685,7 +702,12 @@ export function Game() {
               key={tfKey}
               onClick={() => handleTimeframeChange(tfKey)}
               disabled={phase !== 'setup'}
-              className="px-2 sm:px-3 py-1 text-xs transition-all dtc-data rounded"
+              // Once a round is locked these are disabled anyway, so on phones the
+              // inactive ones only push the stake control off-screen. Hide them there
+              // and keep the active timeframe visible as a label.
+              className={`px-2 sm:px-3 py-1 text-xs transition-all dtc-data rounded ${
+                phase !== 'setup' && timeframe !== tfKey ? 'hidden sm:block' : ''
+              }`}
               style={{
                 background:
                   timeframe === tfKey ? 'rgba(255,255,255,0.08)' : 'transparent',
@@ -1152,7 +1174,9 @@ export function Game() {
           background: 'var(--bg-secondary)',
         }}
       >
-        <div className="flex items-center gap-2 shrink-0 max-w-full overflow-x-auto">
+        {/* min-w-0 + flex-1 lets this group shrink and scroll instead of pushing
+            the score readout out of the footer on narrow viewports. */}
+        <div className="flex items-center gap-2 min-w-0 flex-1 overflow-x-auto">
           {phase === 'drawing' && (
             <>
               <span className="hidden xl:inline text-xs dtc-data whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>
@@ -1206,27 +1230,36 @@ export function Game() {
                   {linkStatus === 'copied' ? 'Link Copied' : linkStatus === 'error' ? 'Copy Failed' : 'Copy Link'}
                 </button>
               )}
-              <button
-                onClick={handleExportRound}
-                className={FOOTER_ACTION_BUTTON_CLASS}
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                Export JSON
-              </button>
-              <Link
-                to="/leaderboard"
-                className={`${FOOTER_ACTION_BUTTON_CLASS} no-underline`}
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                View Journal
-              </Link>
+              {/* Four fixed-width buttons plus the score readout overflow a phone
+                  footer. These two are secondary — the journal is in the nav menu —
+                  so they only appear once there is room. `contents` on the wrapper
+                  keeps them as direct flex children at sm and up. */}
+              <span className="hidden sm:contents">
+                <button
+                  onClick={handleExportRound}
+                  className={FOOTER_ACTION_BUTTON_CLASS}
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  Export JSON
+                </button>
+                <Link
+                  to="/leaderboard"
+                  className={`${FOOTER_ACTION_BUTTON_CLASS} no-underline`}
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  View Journal
+                </Link>
+              </span>
             </>
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-3 min-w-0 flex-1">
+        {/* shrink-0 so this sizes to its content instead of splitting the footer
+            50/50 with the button group, which truncated the buttons on phones.
+            Unbounded text inside is individually clamped. */}
+        <div className="flex items-center justify-end gap-3 shrink-0">
           {phase === 'setup' && (
-            <span className="text-xs dtc-data" style={{ color: 'var(--text-secondary)' }}>
+            <span className="text-xs dtc-data truncate max-w-[52vw] sm:max-w-none" style={{ color: 'var(--text-secondary)' }}>
               {isLive ? 'Showing live BTC data' : 'Showing historical BTC data'} · {TIMEFRAMES[timeframe].interval} candles
             </span>
           )}
@@ -1249,7 +1282,7 @@ export function Game() {
                   <span>{activeTATool !== 'none' ? 'exit tool' : hasDrawing ? 'clear' : 'reset'}</span>
                 </span>
               </div>
-              <span className="sm:hidden text-xs" style={{ color: 'var(--text-secondary)' }}>
+              <span className="sm:hidden text-xs truncate max-w-[42vw]" style={{ color: 'var(--text-secondary)' }}>
                 {activeTATool !== 'none'
                   ? 'Switch back to Cursor to keep drawing'
                   : hasDrawing
@@ -1271,7 +1304,7 @@ export function Game() {
             </>
           )}
           {phase === 'submitted' && score && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 shrink-0 pl-2">
               <span className="hidden sm:inline text-xs dtc-data" style={{ color: 'var(--text-secondary)' }}>
                 Local log: {roundLogCount} rounds
               </span>

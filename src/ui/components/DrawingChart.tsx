@@ -1216,6 +1216,14 @@ function DrawingChartInner({
   const futureGradientX = paneMetrics ? paneMetrics.left + paneMetrics.freezeX : 0;
   const futureGradientY = paneMetrics ? paneMetrics.top : 0;
   const futureEndX = futureGradientX + futureWidth;
+  // On narrow viewports the future zone is too tight for both end labels, and
+  // "NOW" and "FINISH" render on top of each other. Below this width, drop
+  // FINISH and keep NOW, which is the one that orients the drawing.
+  const futureZoneFitsBothLabels = futureWidth >= 132;
+  const futureZoneFitsRoundEnd = futureWidth >= 190;
+  // "FUTURE ZONE" starts 56px in and runs ~90px, so it spills over the price axis
+  // in a narrower zone.
+  const futureZoneFitsHeader = futureWidth >= 150;
   const drawBandLeft =
     paneMetrics != null
       ? paneMetrics.left + Math.max(0, paneMetrics.freezeX - DRAW_START_LEFT_PAD)
@@ -1310,36 +1318,42 @@ function DrawingChartInner({
               stroke="rgba(212, 168, 92, 0.5)"
               strokeDasharray="6 6"
             />
-            <text
-              x={futureGradientX + Math.max(56, futureWidth * 0.14)}
-              y={futureGradientY + 16}
-              fill={TEXT_MUTED}
-              fontSize="10"
-              fontWeight="700"
-              letterSpacing="1.1"
-            >
-              FUTURE ZONE
-            </text>
-            <rect
-              x={Math.max(futureGradientX + 18, futureEndX - 112)}
-              y={futureGradientY + 8}
-              width="104"
-              height="20"
-              rx="10"
-              fill="rgba(17, 17, 19, 0.94)"
-              stroke="rgba(212, 168, 92, 0.2)"
-            />
-            <text
-              x={futureEndX - 68}
-              y={futureGradientY + 22}
-              textAnchor="middle"
-              fill={ACCENT_STRONG}
-              fontSize="9.5"
-              fontWeight="700"
-              letterSpacing="0.9"
-            >
-              ROUND END
-            </text>
+            {futureZoneFitsHeader && (
+              <text
+                x={futureGradientX + Math.max(56, futureWidth * 0.14)}
+                y={futureGradientY + 16}
+                fill={TEXT_MUTED}
+                fontSize="10"
+                fontWeight="700"
+                letterSpacing="1.1"
+              >
+                FUTURE ZONE
+              </text>
+            )}
+            {futureZoneFitsRoundEnd && (
+              <rect
+                x={Math.max(futureGradientX + 18, futureEndX - 112)}
+                y={futureGradientY + 8}
+                width="104"
+                height="20"
+                rx="10"
+                fill="rgba(17, 17, 19, 0.94)"
+                stroke="rgba(212, 168, 92, 0.2)"
+              />
+            )}
+            {futureZoneFitsRoundEnd && (
+              <text
+                x={futureEndX - 68}
+                y={futureGradientY + 22}
+                textAnchor="middle"
+                fill={ACCENT_STRONG}
+                fontSize="9.5"
+                fontWeight="700"
+                letterSpacing="0.9"
+              >
+                ROUND END
+              </text>
+            )}
             <text
               x={futureGradientX}
               y={futureGradientY + paneMetrics.height - 10}
@@ -1351,17 +1365,19 @@ function DrawingChartInner({
             >
               NOW
             </text>
-            <text
-              x={futureEndX - 12}
-              y={futureGradientY + paneMetrics.height - 10}
-              textAnchor="end"
-              fill={ACCENT_STRONG}
-              fontSize="10"
-              fontWeight="700"
-              letterSpacing="1"
-            >
-              FINISH
-            </text>
+            {futureZoneFitsBothLabels && (
+              <text
+                x={futureEndX - 12}
+                y={futureGradientY + paneMetrics.height - 10}
+                textAnchor="end"
+                fill={ACCENT_STRONG}
+                fontSize="10"
+                fontWeight="700"
+                letterSpacing="1"
+              >
+                FINISH
+              </text>
+            )}
           </>
         )}
 

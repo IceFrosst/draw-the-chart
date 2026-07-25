@@ -1,5 +1,27 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
 @import "tailwindcss";
+
+/*
+ * Fonts are self-hosted (latin subset, variable weight). Previously these came
+ * from a remote @import, which is render-blocking and serialized: the browser
+ * had to fetch this stylesheet, discover the import, then reach a third-party
+ * host before first paint. On a slow or filtered network that meant a blank
+ * page for as long as fonts.googleapis.com took to answer.
+ */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/dm-sans-latin-var.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono-latin-var.woff2') format('woff2');
+}
 
 :root {
   color-scheme: dark;
