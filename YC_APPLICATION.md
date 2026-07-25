@@ -196,3 +196,22 @@ Zero-exposure variant:
 
 A reader who thinks in categories supplies "that's a new instrument" unprompted, and a
 conclusion the reader reaches is worth more than an asserted one.
+
+### FINAL phrasing decision: "a new financial primitive"
+
+Chosen over both "instrument" and "market primitive."
+
+- **Low regulatory exposure.** No regulator classifies "primitives," so the ambition of
+  "instrument" survives without inviting the classification question.
+- **Native vocabulary.** Standard phrasing for any reader who has looked at crypto;
+  consistent with the fintech framing the rest of the answer uses.
+- **Mildly worn phrase** (ubiquitous in 2020-2022 DeFi decks), but rescued here because
+  the clause defines itself immediately — "priced on the shape of a path rather than a
+  binary outcome" — instead of asking the phrase to carry meaning alone.
+- **Accepted trade-off:** the fintech frame means regulatory and settlement answers get
+  weighed more seriously than under a consumer-game framing. Higher-valuation frame, but
+  the licensing answer needs to be ready wherever YC asks for it.
+
+Final paragraph 2:
+
+The behavior already exists. Retail traders draw on charts every day, on every charting app, for free. And prediction markets have gone from niche to mainstream in two years. Nobody has connected the two: the drawing stays a screenshot, the market stays a yes/no. We make the drawing itself the position — a new financial primitive, priced on the shape of a path rather than a binary outcome.
