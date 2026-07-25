@@ -115,3 +115,28 @@ The engine is calibrated against 302,000 BTC candles — a random walk scores 30
 - **Honest closing gap list.** Naming the three missing pieces (wallet auth, oracle, bankroll controls) reads as competence and signals that none of the remaining work is the risky part. Claiming more than the sandbox delivers would be contradicted by the live link.
 - **Feedback instrumentation is called out** because `supabase/migrations/001_initial_schema.sql` really does capture `fairness_vote`, `self_assessed_score`, and `would_bet_real_money` per round — evidence we are measuring the risk that actually kills this product (players perceiving the score as unfair) before taking money.
 - **Licensing/jurisdiction deliberately omitted.** The field asks what the product is; raising regulation here spends the strongest paragraph on defense. Answer it where YC asks directly, but have a real answer prepared.
+
+### Revised opening (comp + why-now, resequenced)
+
+Draw The Chart is a prediction market where you bet on the shape of a price path instead of a yes/no outcome — TradingView meets Polymarket.
+
+Two things make this the moment for it. Retail traders already draw on charts; it's a habit they perform for free, every day, on every charting app. And prediction markets have become one of the fastest-growing categories in consumer finance. Nobody has connected the two — the drawing stays a screenshot, and the market stays a yes/no. We make the drawing itself the position.
+
+A round opens at a locked BTC price. You see the historical chart up to that moment, pick a horizon (15 minutes to 7 days), stake an amount, and draw the path you think BTC will take — freehand, directly on the chart. When the horizon closes, a deterministic engine scores your drawing against what BTC actually did, in log-return space, across four components: direction (40 points), magnitude (30), turning points (20), and volatility regime (10). The score maps to a published payout curve — below 60/100 you get a partial refund, floored at 0.40x; above it the multiplier goes convex to a 25x cap. It's house-vs-player, so rounds are always available with no need to match an opposing view. The house edge is 2% and every parameter is public.
+
+The scoring engine is built and calibrated against 302,000 historical BTC candles: a random walk scores 30-35, a flat line 23-35, a near-perfect path 98-100. The full loop is playable today in sandbox at draw-the-chart-eight.vercel.app, and every round we run captures whether the player thought the score was fair, what they'd have scored it themselves, and whether they'd have staked real money on it.
+
+Three things stand between the sandbox and a live product: wallet auth, a price oracle for settlement, and bankroll risk controls. The mechanic is done — the scoring engine is the hard part and it works.
+
+### Flow notes on the revision
+
+- **Comp attached to the definition, not standalone.** As its own sentence ("Imagine TradingView meets Polymarket") it is a speed bump — the reader holds two brands before knowing why. Attached with a dash it compresses the sentence just read, which is a comp's actual job. "Imagine" dropped: it asks the reader to do work instead of telling them.
+- **Tailwinds labeled as a pair.** "Two things make this the moment for it" signals a list, so both facts land as evidence rather than loose assertions.
+- **Circular ending replaced with a bridge.** "This is where Draw The Chart comes" restarts the paragraph and repeats the company name. "Nobody has connected the two → we make the drawing itself the position" names the gap, closes it, and hands off to the mechanic.
+- **Quantify the growth claim.** Replace "one of the fastest-growing categories" with a real volume figure, or use "gone from niche to mainstream in two years." An unquantified superlative reads worse than a number to a reader who already knows the number.
+
+### Tension-first alternative (more persuasive, slower)
+
+Retail traders draw on charts all day and get nothing for it. Prediction markets took off by letting people bet on outcomes, but only in yes/no form. Draw The Chart is the product between those two facts: a prediction market where you bet on the shape of a price path.
+
+Not recommended for this field — the question asks what you make, so definition-first serves it better.
