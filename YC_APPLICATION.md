@@ -215,3 +215,34 @@ Chosen over both "instrument" and "market primitive."
 Final paragraph 2:
 
 The behavior already exists. Retail traders draw on charts every day, on every charting app, for free. And prediction markets have gone from niche to mainstream in two years. Nobody has connected the two: the drawing stays a screenshot, the market stays a yes/no. We make the drawing itself the position — a new financial primitive, priced on the shape of a path rather than a binary outcome.
+
+## FINAL ANSWER — simple/generic version (founder's chosen direction)
+
+Deliberately high-level: plain language, no component weights, no calibration figures.
+The detailed evidence moves to "How far along are you?", where proof is what the question
+is actually asking for.
+
+Draw The Chart is a prediction market where you bet on the shape of a price path instead of a yes/no outcome. Imagine TradingView meets Polymarket.
+
+The behavior already exists. Retail traders draw on charts every day, on every charting app, for free. And prediction markets have gone from niche to mainstream in two years. Nobody has connected the two: the drawing stays a screenshot, the market stays a yes/no. We make the drawing itself the position — a new financial primitive, priced on the shape of a path rather than a binary outcome.
+
+A round opens at a locked asset price. You pick a time horizon (from minutes to days), stake an amount, and draw the price action you expect. Then our engine scores your drawing against what really happened, and you win or lose depending on your accuracy.
+
+Optional closing line: It's playable today at draw-the-chart-eight.vercel.app.
+
+### Edits applied to the mechanic paragraph (typos/accuracy only)
+
+- Removed stray "$" placeholder — "win or lose $ depending on" read as an unfinished sentence.
+- "From one minute to days" -> "from minutes to days". The shortest shipped round is 15
+  minutes (Appendix A), so "one minute" is disprovable by clicking the demo link.
+  "Minutes to days" is equally generic and accurate.
+- Lowercased "from" inside the parenthesis.
+
+No other changes: the generic register is intentional and preserved.
+
+### Where the cut detail belongs instead
+
+The four scoring components, the 302k-candle calibration (random walk 30-35, near-perfect
+98-100), the payout floor/cap, and the round-feedback capture are the strongest material
+in this repo. They answer "How far along are you?" rather than "What do you make?" — keep
+them for that field.
