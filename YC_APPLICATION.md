@@ -357,3 +357,35 @@ For building: Claude Code as the main tool, Codex and Grok for review passes.
 
 Also: give each AI coding tool a one-word role. A flat list of three reads as collecting
 rather than using.
+
+## "How far along are you?"
+
+### Recommended answer
+
+The sandbox MVP is built and deployed. The full loop works end to end: pick a horizon, draw a path, submit, watch the real price replay against your drawing, get a component score and a payout. No real money, no wallets, no accounts yet, and no users beyond our own testing.
+
+What's done is the hard part. The scoring engine is deterministic and calibrated against 302,000 historical BTC candles — a random walk scores 30-35, a flat line 23-35, a near-perfect path 98-100 — with 50 tests, including guardrails that fail if the payout curve drifts out of its tuned bands.
+
+The idea is refined. We're deliberately not launching yet, because what kills this product isn't the math — it's a score that feels arbitrary. If a player reads the chart well and the engine disagrees, we lose them for good, and no payout curve fixes that. So we built two instruments for it. Every round captures whether the player thought the score was fair, what they'd have scored themselves, and whether they'd stake real money on it. And a side-by-side tool shows two predictions on the same price segment and asks a human which one is better, so we can measure how often the engine agrees with human judgment.
+
+Next is a closed testing group to gather that data at volume, then real-money settlement. In parallel we're pursuing L1 ecosystem partnerships for distribution and settlement — a chart-native prediction primitive is the kind of thing chains want in their ecosystem, and their grant and developer programs give us reach that would otherwise cost paid acquisition.
+
+### Notes
+
+- **Both validation instruments are real code**, not aspiration: `round_feedback` in
+  `supabase/migrations/001_initial_schema.sql` captures fairness_vote, self_assessed_score,
+  confidence, wrong_components, difficulty_perception and would_bet_real_money per round;
+  `src/ui/lib/validationPairs.ts` + `src/ui/pages/Validate.tsx` generate two scored
+  predictions over the same segment for blind human comparison against the engine's ranking.
+- **The L1 line is written as intent ("we're pursuing"), not fact.** Upgrade it only if real
+  conversations exist, and name the chain and stage if so — "various L1s" invites a question
+  that a specific name answers. Overstated partnerships are trivially checkable.
+- **"No users beyond our own testing" stays in.** The following paragraph explains the
+  sequencing, which makes the absence a decision rather than a gap. A vague answer about
+  users unravels the moment someone asks for a number.
+- **The demo is behind a password gate** (`src/ui/components/PasswordGate.tsx`). This answer
+  claims a working end-to-end loop, so either drop the gate for the review window or include
+  the password in the application.
+- **Commit recency:** substantive work lands in March and May 2026. Nothing in the
+  application asks, so do not raise it, but have a straight answer ready for "what have you
+  been doing since May" if the repo is shared.
