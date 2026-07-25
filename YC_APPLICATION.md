@@ -28,3 +28,63 @@ Prediction markets where you draw the chart.
 ## Supporting one-paragraph description (for the longer field that follows)
 
 Draw The Chart is a prediction market where the input is a drawing instead of a yes/no click. A round opens at a locked BTC anchor; the player draws the price path they expect over a fixed horizon (15m to 7d), stakes on it, and a deterministic engine scores the drawn path against the realized market path in log-return space across four components — direction (40), magnitude (30), turning points (20), and volatility regime (10). The score maps to a published payout curve: below 60/100 is a partial refund with a 0.40x floor, above it is convex up to 25x, with a 2% house edge. The scoring engine is built and calibrated against 302k historical BTC candles (a random walk scores 30–35, a near-perfect path 98–100), and a full sandbox game loop is live at https://draw-the-chart-eight.vercel.app. What remains for the live product is settlement infrastructure — wallet auth, a price oracle, and bankroll controls — not the mechanic.
+
+## Extended alternates (by strategic frame)
+
+Each line sells a different company, not just a different sentence.
+
+### The primitive reframe — names a new financial primitive
+| Chars | Line |
+|---|---|
+| 39 | Prediction markets with partial credit. |
+| 34 | Paid on how close you got, not if. |
+| 40 | The first prediction market with a dial. |
+
+Every prediction market is pass/fail; we are graded. Implies the category has been
+rounding rich information down to one bit. Risk: abstract, no visual, doesn't say crypto.
+
+### The data play — reframes gambling as a proprietary dataset
+| Chars | Line |
+|---|---|
+| 35 | A market for human price forecasts. |
+
+Highest ceiling. Every round yields a stake-weighted, timestamped, fully specified
+human forecast auto-graded against ground truth, accruing at zero marginal cost while
+the house edge funds operations. Risk: reads B2B, must answer "who buys the data?"
+
+### Comp positioning — cheapest market-size transfer
+| Chars | Line |
+|---|---|
+| 40 | Polymarket for chart shapes, not yes/no. |
+| 29 | TradingView meets Polymarket. |
+
+Risk: X-meets-Y implies charting infrastructure we don't build.
+
+### Wallet-share honesty — names who we take volume from
+| Chars | Line |
+|---|---|
+| 38 | Perps without leverage. You just draw. |
+| 30 | Options trading with a pencil. |
+
+"Perps without leverage" is WHITEPAPER.md §14.2 compressed: no liquidations, judged on
+thesis not execution. Avoid the "options" line in this field — it is the one word here
+that changes which regulator the reader imagines.
+
+### Plain-English expressiveness — no jargon, no comps
+| Chars | Line |
+|---|---|
+| 41 | Bet on the shape, not just the direction. |
+| 26 | The chart is the bet slip. |
+
+### Bonus — sells time-to-first-bet
+| Chars | Line |
+|---|---|
+| 37 | Draw a chart. That's the whole trade. |
+| 39 | Sketch the chart. Stake it. Get scored. |
+
+### Verdict
+
+The recommended line sells **category**. "Prediction markets with partial credit."
+sells **insight**. "Perps without leverage. You just draw." sells **substitution**
+against a market doing >$100B/mo. Any of the three is defensible; pick based on which
+story the rest of the application tells.
