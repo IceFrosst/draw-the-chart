@@ -310,3 +310,25 @@ Longer term, every round produces a labeled human forecast graded against ground
 - **Test-count claim is now true from a clean clone.** See the harness data-path fix in
   this branch: 3 backtest tests previously failed on a fresh clone because `data/` is
   gitignored while the committed candle file lives in `public/`.
+
+### Infrastructure notes (not for the application — for planning)
+
+Hosting choice carries no weight in the application. Vercel is a normal production choice
+and needs no defending. The real gaps are in what a live, real-money product requires:
+
+- **Jurisdiction controls are a launch blocker and are missing from the PROJECT_STATUS
+  must-have list.** EU gambling licences do not passport, so taking real stakes requires
+  reliably blocking traffic from unlicensed jurisdictions *and* being able to evidence it.
+  Country-level blocking plus WAF at the edge (Cloudflare) is the standard approach; doing
+  it in application code is weaker and harder to prove to a regulator.
+- **Bot/abuse mitigation.** A scored game with convex payouts invites scripted play farming
+  for scoring exploits. Edge rate limiting plus Turnstile is cheap and standard.
+- **Round orchestration needs a persistent process.** Rounds open, lock, wait a fixed
+  horizon, then settle against an oracle price. Serverless is a poor fit for "wake up in six
+  hours and settle"; live price streaming wants WebSockets. Either a small always-on service
+  (Fly.io / Railway / Render / VPS) or Cloudflare Durable Objects — one object per round with
+  alarms for settlement timing, which maps closely onto the existing round state machine.
+- **Supabase stays.** Postgres is correct for auditable money-adjacent data.
+- **Move `public/btc_1m_candles.json` (7.6MB) to object storage** before real traffic.
+- **Log raw oracle feed data per round.** Settlement price disputes are an existential risk
+  for this product; replayability is the defence.
