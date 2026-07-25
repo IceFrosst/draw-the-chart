@@ -389,3 +389,33 @@ Next is a closed testing group to gather that data at volume, then real-money se
 - **Commit recency:** substantive work lands in March and May 2026. Nothing in the
   application asks, so do not raise it, but have a straight answer ready for "what have you
   been doing since May" if the repo is shared.
+
+## "How long have each of you been working on this? How much of that has been full-time?"
+
+### Recommended answer (fill the bracketed fields)
+
+About seven months on the idea, roughly four days on the build.
+
+Most of that time went into the parts that aren't code: how to score a drawn path so it feels fair rather than arbitrary, what the payout curve should look like, why direction is worth 40 points and turning points 20, and what a random walk ought to score. Those decisions took months to get right. Once they were settled, the app itself came together in about four days.
+
+I'm [currently part-time / full-time since X]. [If accepted, full-time from day one.]
+
+I'd rather be direct about the build time than dress it up. The code was fast because the thinking was already done and because current tools make it fast — the app was built with models that are now four months old, and I could rebuild the whole surface faster today than it took then. What I can't shortcut is knowing whether the score feels fair to someone who actually reads charts well. That's why the next phase is testing, not more building.
+
+### Notes
+
+- **Do not hide the four-day build, and do not call it "vibecoded."** The speed is a
+  velocity signal YC selects for. But "vibecoded" is also inaccurate here: it undersells the
+  scoring design in WHITEPAPER.md §8 (component weighting rationale, log-return space,
+  Hungarian matching) and the 50 tests with economic guardrails. The framing that works is
+  months of thinking, days of building — the ratio is the argument.
+- **The full-time answer cannot be finessed.** It is the real content of the question, YC
+  weights it heavily, and it comes up again at interview. Part-time plus a clear statement of
+  what changes on acceptance is a respected answer; vagueness is not.
+- **Replace "seven months" with the actual starting month.** Specific dates read as fact;
+  round numbers read as estimates.
+- **Use "I" in this field** even though company-level answers use "we" — the question asks
+  about each founder, and first person answers it correctly for a solo founder.
+- **The closing paragraph deliberately echoes the progress answer** (testing is the
+  bottleneck, not building). Partners read these fields together; the same true claim in
+  several places reads as conviction.
