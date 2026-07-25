@@ -179,6 +179,30 @@ function buildLayout(viewW: number) {
   };
 }
 
+/**
+ * One-shot 0→1 ramp on mount. The four markets are meant to be streaming when the page
+ * lands; without this the hero sits on an empty chart until the visitor scrolls.
+ */
+function useIntroProgress(enabled: boolean, durationMs = 1600): number {
+  const [t, setT] = useState(enabled ? 0 : 1);
+  useEffect(() => {
+    if (!enabled) {
+      setT(1);
+      return;
+    }
+    let frame = 0;
+    const start = performance.now();
+    const step = (now: number) => {
+      const v = clamp01((now - start) / durationMs);
+      setT(v);
+      if (v < 1) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [enabled, durationMs]);
+  return t;
+}
+
 /** True on narrow viewports, where the header wordmark and the ticker would collide. */
 function useIsNarrow(breakpoint = 620): boolean {
   const [narrow, setNarrow] = useState(false);
@@ -215,7 +239,11 @@ function useViewWidth(ref: React.RefObject<HTMLElement | null>): number {
 /* ───────────────────────────────── the beats ─────────────────────────────────── */
 
 const BEATS = [
-  { kicker: 'Live', line: 'Every market is a shape.' },
+  {
+    kicker: 'Live',
+    line: 'Every market is a shape.',
+    sub: 'Imagine TradingView meets Polymarket. You bet on the shape of a price path instead of a yes/no outcome.',
+  },
   { kicker: 'Focus', line: 'Pick one.' },
   { kicker: 'NVDA', line: 'The last two hours.' },
   { kicker: 'Locked', line: 'The chart stops here.' },
@@ -281,11 +309,13 @@ export function Reel() {
   const narrow = useIsNarrow();
   const L = useMemo(() => buildLayout(viewW), [viewW]);
   const reduced = usePrefersReducedMotion();
+  const intro = useIntroProgress(!reduced);
   const raw = useScrollProgress(sectionRef, !reduced);
   const p = reduced ? 1 : raw;
 
   // Animation windows, deliberately overlapping so beats hand off rather than cut.
-  const streamIn = easeOut(seg(p, 0.0, 0.06)); // four markets draw in
+  // The intro ramp and the scroll both feed the stream-in; whichever is further wins.
+  const streamIn = Math.max(easeOut(intro), easeOut(seg(p, 0.0, 0.06))); // four markets draw in
   const freeze = seg(p, 0.11, 0.15); // the stop
   const isolate = easeInOut(seg(p, 0.15, 0.23)); // three lines leave
   const zoom = easeInOut(seg(p, 0.2, 0.31)); // NVDA rescales to price space
@@ -662,6 +692,23 @@ export function Reel() {
             {beat.line}
           </h1>
 
+          {/* The positioning line rides the opening beat and clears out once the reel
+              starts moving, so later beats stay cinematic. */}
+          {'sub' in beat && beat.sub && (
+            <p
+              style={{
+                maxWidth: 640,
+                margin: '14px auto 0',
+                fontSize: 'clamp(13px, 1.6vw, 17px)',
+                lineHeight: 1.5,
+                color: 'var(--text-secondary)',
+                opacity: 1 - seg(p, 0.05, 0.1),
+              }}
+            >
+              {beat.sub}
+            </p>
+          )}
+
           {/* stake, once committed */}
           <div
             className="dtc-data"
@@ -773,7 +820,7 @@ export function Reel() {
                 color: '#120d09',
               }}
             >
-              Draw one yourself
+              Test now
             </Link>
           )}
         </div>
