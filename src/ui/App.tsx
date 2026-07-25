@@ -1,7 +1,6 @@
 import { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Outlet, useLocation } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
-import { PasswordGate } from './components/PasswordGate';
 
 const Landing = lazy(() =>
   import('./pages/Landing').then((module) => ({ default: module.Landing })),
@@ -79,22 +78,24 @@ function Layout() {
   );
 }
 
+// The sandbox is open while it is being shared for review. To gate it again,
+// wrap <BrowserRouter> in <PasswordGate> (see components/PasswordGate.tsx) and
+// set VITE_APP_PASSWORD — note that the value ships in the client bundle, so it
+// deters casual visitors rather than actually restricting access.
 export function App() {
   return (
-    <PasswordGate>
-      <BrowserRouter>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<Landing />} />
-            <Route path="/play" element={<Game />} />
-            <Route path="/faq" element={<FAQ />} />
-            <Route path="/leaderboard" element={<Leaderboard />} />
-            <Route path="/whitepaper" element={<Whitepaper />} />
-            <Route path="/validate" element={<Validate />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </PasswordGate>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Landing />} />
+          <Route path="/play" element={<Game />} />
+          <Route path="/faq" element={<FAQ />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/whitepaper" element={<Whitepaper />} />
+          <Route path="/validate" element={<Validate />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
 
