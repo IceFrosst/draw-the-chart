@@ -22,7 +22,14 @@ export const BACKTEST_TIMEFRAMES: Record<string, number> = {
 const LOOKBACK_MINUTES = 30;
 const DEFAULT_ROUNDS_PER_STRATEGY = 1000;
 const DEFAULT_SEED = 12345;
-const DEFAULT_DATA_PATH = path.join(process.cwd(), 'data', 'btc_1m_candles.json');
+// `data/` is gitignored, so a fresh clone only has the copy shipped in `public/`.
+const CANDIDATE_DATA_PATHS = [
+  path.join(process.cwd(), 'data', 'btc_1m_candles.json'),
+  path.join(process.cwd(), 'public', 'btc_1m_candles.json'),
+];
+
+const DEFAULT_DATA_PATH =
+  CANDIDATE_DATA_PATHS.find((candidate) => fs.existsSync(candidate)) ?? CANDIDATE_DATA_PATHS[0]!;
 
 export interface Stats {
   mean: number;

@@ -285,3 +285,28 @@ Staying is deliberate. Lithuania is the EU's largest fintech licensing hub, and 
 - **The licensing claim is deliberately modest** ("a clearer near-term path"). EU gambling
   licences do not passport between member states, so a stronger claim invites a question
   that cannot be answered until the product's regulatory classification is settled.
+
+## "What tech stack are you using? Include AI models and AI coding tools you use."
+
+### Recommended answer
+
+TypeScript end to end, strict mode. React 19 + Vite 7 + Tailwind 4 on the front end, with TradingView's open-source lightweight-charts for rendering and a custom freehand drawing layer on top. Express 5 for the round API, Supabase (Postgres) for rounds and player feedback, Vercel for hosting. Vitest for tests — 50 across 9 files, including calibration and economic guardrail assertions that fail if the payout curve drifts out of its tuned bands. Market data is Binance 1-minute BTC/USDT candles.
+
+Deliberately no AI in the scoring path. Scores come from plain math — log-return resampling, Gaussian smoothing, and Hungarian matching for turning points — because a player staking money has to be able to see exactly why they scored what they did and reproduce it. A model in that loop would make payouts unexplainable, which is the fastest way to lose trust in a product like this.
+
+For building: Claude Code as the main coding tool, with Codex for second-opinion review passes. That's how one person shipped a calibrated scoring engine, a backtest harness, and the full web app.
+
+Longer term, every round produces a labeled human forecast graded against ground truth — a dataset nobody else has. That's a later product, not this one.
+
+### Notes
+
+- **The "no AI in scoring" paragraph is the point-scoring one.** The question invites
+  AI-washing; the stronger answer is a confident refusal with a product reason behind it.
+  It restates WHITEPAPER.md §4.2 ("Determinism over mystique") and differentiates from
+  applications that claim a model for everything.
+- **Confirm the AI tooling line against actual workflow** before submitting. Drafted from
+  repo evidence (PROJECT_STATUS.md references a Codex review pass; `.claude/` is
+  gitignored), but this is an easy detail to probe in an interview.
+- **Test-count claim is now true from a clean clone.** See the harness data-path fix in
+  this branch: 3 backtest tests previously failed on a fresh clone because `data/` is
+  gitignored while the committed candle file lives in `public/`.
