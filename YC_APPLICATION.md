@@ -140,3 +140,28 @@ Three things stand between the sandbox and a live product: wallet auth, a price 
 Retail traders draw on charts all day and get nothing for it. Prediction markets took off by letting people bet on outcomes, but only in yes/no form. Draw The Chart is the product between those two facts: a prediction market where you bet on the shape of a price path.
 
 Not recommended for this field — the question asks what you make, so definition-first serves it better.
+
+### Merged version (founder draft + restored evidence) — USE THIS
+
+Draw The Chart is a prediction market where you bet on the shape of a price path instead of a yes/no outcome. Imagine TradingView meets Polymarket.
+
+The behavior already exists. Retail traders draw on charts every day, on every charting app, for free. And prediction markets have gone from niche to mainstream in two years. Nobody has connected the two: the drawing stays a screenshot, the market stays a yes/no. We make the drawing itself the position — a new instrument priced on the shape of a path rather than a binary outcome.
+
+A round opens at a locked BTC price. You pick a horizon (15 minutes to 7 days), stake an amount, and draw the price action you expect. Our engine then scores your drawing against what really happened across four components — direction, magnitude, turning points, and volatility regime — and pays on accuracy: below 60/100 is a partial refund floored at 0.40x, above it the payout goes convex to a 25x cap, with a 2% house edge.
+
+The engine is calibrated against 302,000 historical BTC candles — a random walk scores 30-35, a near-perfect path 98-100 — and the whole loop is playable in sandbox today. Wallet auth, a settlement oracle, and bankroll controls are what's left to go live.
+
+### Edit rationale vs. the founder draft
+
+Kept: "what really happened" (plainer than "what BTC actually did"), the shorter mechanic paragraph, and the "new instrument" ambition.
+
+Changed:
+
+- **"The stars are aligned" → "The behavior already exists."** The only sentence asking the reader to take something on faith, sitting on top of two facts that are real evidence. The replacement is this repo's own WHITEPAPER.md §2.1 heading.
+- **Restored the proof.** The draft cut the four components, calibration bands, payout curve, and sandbox link, leaving "our engine scores your drawing" — the exact hand-wave a skeptic attacks. "A random walk scores 30-35" is the only sentence that proves the scoring is not arbitrary.
+- **"asset price" → "BTC price."** The product is BTC/USDT only (WHITEPAPER.md §3.2). Genericizing reads as hedging and is inaccurate; narrow-and-real beats broad-and-vague.
+- **"From one minute to days" → "15 minutes to 7 days."** Actual horizons per Appendix A are 15m, 1h, 6h, 24h, 7d. No one-minute round exists — do not ship a fact-checkable error next to a live link.
+- **"win or lose $ depending on your accuracy" → explicit floor and cap.** Fixes a stray placeholder and restores the asymmetry (0.40x floor, 25x cap, 2% edge), which is the answer to how the business earns.
+- **"one of the fastest-growing categories" → "gone from niche to mainstream in two years."** The draft dropped the noun ("categories of what?"); the replacement avoids inviting a numbers correction from a reader who knows the volumes.
+- **Cut "Until now."** It pre-announced the reveal the next clause delivers, making one point twice.
+- **"new financial instrument" kept but attached to its definition.** "A new instrument priced on the shape of a path rather than a binary outcome" reads as precision instead of grandiosity, and is defensible: a payoff that is a function of an entire path is what an exotic derivative is.
