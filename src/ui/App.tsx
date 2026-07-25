@@ -2,6 +2,9 @@ import { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Outlet, useLocation } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 
+const Reel = lazy(() =>
+  import('./pages/Reel').then((module) => ({ default: module.Reel })),
+);
 const Landing = lazy(() =>
   import('./pages/Landing').then((module) => ({ default: module.Landing })),
 );
@@ -23,6 +26,7 @@ const Validate = lazy(() =>
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Draw The Chart',
+  '/overview': 'Overview | Draw The Chart',
   '/play': 'Play | Draw The Chart',
   '/faq': 'How It Works | Draw The Chart',
   '/leaderboard': 'Journal | Draw The Chart',
@@ -31,7 +35,8 @@ const PAGE_TITLES: Record<string, string> = {
 };
 
 const PAGE_DESCRIPTIONS: Record<string, string> = {
-  '/': 'Draw The Chart is a BTC prediction game where players draw the future path instead of placing a binary bet.',
+  '/': 'Bet on the shape of a price path. Draw what the market does next and get paid on how close you were.',
+  '/overview': 'Draw The Chart overview: scoring components, payout curve, and timeframes.',
   '/play': 'Play the Draw The Chart sandbox, draw a BTC path, and see how the scoring and payout engine settle the round.',
   '/faq': 'Learn how Draw The Chart scoring, payout logic, sandbox rounds, and fairness model work.',
   '/leaderboard': 'Review locally saved Draw The Chart sandbox rounds, scores, multipliers, and payout outcomes in the round journal.',
@@ -86,8 +91,18 @@ export function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* The reel is full-screen with no chrome — it sits outside the navbar layout
+            and is the only route with nothing clickable until the closing CTA. */}
+        <Route
+          path="/"
+          element={
+            <Suspense fallback={<PageSkeleton />}>
+              <Reel />
+            </Suspense>
+          }
+        />
         <Route element={<Layout />}>
-          <Route path="/" element={<Landing />} />
+          <Route path="/overview" element={<Landing />} />
           <Route path="/play" element={<Game />} />
           <Route path="/faq" element={<FAQ />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
