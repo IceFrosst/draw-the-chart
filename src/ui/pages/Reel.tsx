@@ -254,6 +254,22 @@ const BEATS = [
   { kicker: 'Scored', line: 'Paid on how close you got.' },
 ] as const;
 
+/** A 64px noise tile as a data URI — one tiny asset, no network request. */
+const GRAIN_URI = (() => {
+  const size = 64;
+  let rects = '';
+  for (let y = 0; y < size; y += 2) {
+    for (let x = 0; x < size; x += 2) {
+      const v = noise(x * 1.37 + y * 7.13);
+      if (v > 0.62) {
+        rects += `<rect x="${x}" y="${y}" width="2" height="2" fill="#fff" opacity="${(v * 0.5).toFixed(2)}"/>`;
+      }
+    }
+  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">${rects}</svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+})();
+
 /* ────────────────────────────── scroll plumbing ──────────────────────────────── */
 
 function usePrefersReducedMotion(): boolean {
@@ -268,34 +284,76 @@ function usePrefersReducedMotion(): boolean {
   return reduced;
 }
 
-function useScrollProgress(ref: React.RefObject<HTMLElement | null>, enabled: boolean): number {
+/**
+ * Scroll progress with inertia. The raw value from the wheel is stepped and jittery, so it
+ * feeds a target that the rendered value chases with frame-rate-independent exponential
+ * smoothing. Everything downstream inherits the easing, which is what separates a reel that
+ * glides from one that stutters.
+ *
+ * The rAF loop only runs while the value is still catching up, so a settled page is idle.
+ */
+function useSmoothScrollProgress(
+  ref: React.RefObject<HTMLElement | null>,
+  enabled: boolean,
+  /** Fraction of the remaining gap closed per 16.7ms frame. */
+  responsiveness = 0.17,
+): number {
   const [progress, setProgress] = useState(0);
+  const target = useRef(0);
+  const current = useRef(0);
+  const frame = useRef(0);
+  const lastTime = useRef(0);
 
   useEffect(() => {
     const el = ref.current;
     if (!el || !enabled) return;
-    let frame = 0;
 
-    const measure = () => {
-      frame = 0;
+    const readTarget = () => {
       const rect = el.getBoundingClientRect();
       const scrollable = rect.height - window.innerHeight;
       if (scrollable <= 0) return;
-      setProgress(clamp01(-rect.top / scrollable));
-    };
-    const request = () => {
-      if (frame === 0) frame = window.requestAnimationFrame(measure);
+      target.current = clamp01(-rect.top / scrollable);
     };
 
-    window.addEventListener('scroll', request, { passive: true });
-    window.addEventListener('resize', request);
-    measure();
-    return () => {
-      window.removeEventListener('scroll', request);
-      window.removeEventListener('resize', request);
-      if (frame) window.cancelAnimationFrame(frame);
+    const tick = (now: number) => {
+      const dt = lastTime.current ? Math.min(64, now - lastTime.current) : 16.7;
+      lastTime.current = now;
+
+      const gap = target.current - current.current;
+      if (Math.abs(gap) < 0.00015) {
+        current.current = target.current;
+        setProgress(current.current);
+        frame.current = 0;
+        lastTime.current = 0;
+        return;
+      }
+
+      // 1 - (1 - k)^(dt/16.7) keeps the feel identical at 60Hz and 120Hz.
+      const k = 1 - Math.pow(1 - responsiveness, dt / 16.7);
+      current.current += gap * k;
+      setProgress(current.current);
+      frame.current = requestAnimationFrame(tick);
     };
-  }, [ref, enabled]);
+
+    const kick = () => {
+      readTarget();
+      if (frame.current === 0) frame.current = requestAnimationFrame(tick);
+    };
+
+    window.addEventListener('scroll', kick, { passive: true });
+    window.addEventListener('resize', kick);
+    readTarget();
+    current.current = target.current;
+    setProgress(current.current);
+
+    return () => {
+      window.removeEventListener('scroll', kick);
+      window.removeEventListener('resize', kick);
+      if (frame.current) cancelAnimationFrame(frame.current);
+      frame.current = 0;
+      lastTime.current = 0;
+    };
+  }, [ref, enabled, responsiveness]);
 
   return progress;
 }
@@ -310,7 +368,7 @@ export function Reel() {
   const L = useMemo(() => buildLayout(viewW), [viewW]);
   const reduced = usePrefersReducedMotion();
   const intro = useIntroProgress(!reduced);
-  const raw = useScrollProgress(sectionRef, !reduced);
+  const raw = useSmoothScrollProgress(sectionRef, !reduced);
   const p = reduced ? 1 : raw;
 
   // Animation windows, deliberately overlapping so beats hand off rather than cut.
@@ -327,19 +385,40 @@ export function Reel() {
   const scoreIn = easeOut(seg(p, 0.84, 0.93)); // components tally
   const payoutIn = easeOut(seg(p, 0.92, 0.995)); // money lands
 
-  const beatIndex = Math.min(
-    BEATS.length - 1,
-    p < 0.11 ? 0
-      : p < 0.2 ? 1
-        : p < 0.31 ? 2
-          : p < 0.4 ? 3
-            : p < 0.57 ? 4
-              : p < 0.64 ? 5
-                : p < 0.71 ? 6
-                  : p < 0.84 ? 7
-                    : 8,
+  // Beat boundaries as fractions of the reel, so captions can cross-fade across them
+  // instead of switching on a threshold.
+  const beatEdges = [0, 0.11, 0.2, 0.31, 0.4, 0.57, 0.64, 0.71, 0.84, 1];
+  const beatIndex = Math.max(
+    0,
+    Math.min(BEATS.length - 1, beatEdges.findIndex((edge) => p < edge) - 1),
   );
   const beat = BEATS[beatIndex]!;
+
+  /**
+   * Opacity and vertical drift for one caption. Each fades up as its beat opens and out as
+   * the next arrives, with a small rise on the way in and continued travel on the way out —
+   * so text is always moving through, never appearing in place.
+   */
+  const captionState = (i: number) => {
+    const start = beatEdges[i] ?? 0;
+    const end = beatEdges[i + 1] ?? 1;
+    const half = (end - start) / 2;
+    const center = start + half;
+    // 0 at the middle of the beat, 1 at its edges, >1 once the next beat owns the frame.
+    // The first and last beats hold instead of fading toward the ends of the reel, where
+    // there is no neighbour to hand off to.
+    const signed = (p - center) / half;
+    const held =
+      (i === 0 && signed < 0) || (i === BEATS.length - 1 && signed > 0) ? 0 : Math.abs(signed);
+    const dist = held;
+    // Plateau through the middle, then fade past the edge — deliberately reaching zero
+    // *after* the boundary so the incoming caption is already visible. Fading both to zero
+    // exactly at the boundary left a blank frame.
+    const opacity = easeOut(1 - clamp01((dist - 0.5) / 0.62));
+    // Travels upward through the beat, so text is always moving rather than parked.
+    const drift = (i === 0 && signed < 0) || (i === BEATS.length - 1 && signed > 0) ? 0 : signed * -14;
+    return { opacity, drift, active: dist < 1.2 };
+  };
 
   const scoreShown = SCORE.total * scoreIn;
   const multiplierShown = lerp(1, OUTCOME.multiplier, payoutIn);
@@ -361,6 +440,9 @@ export function Reel() {
   }, [zoom, histRight, L]);
 
   const flash = freeze > 0 && freeze < 1 ? Math.sin(freeze * Math.PI) * 0.5 : 0;
+
+  // Slow oscillator so held frames still breathe instead of freezing solid.
+  const breathe = Math.sin(p * Math.PI * 9);
 
   return (
     <div
@@ -557,7 +639,15 @@ export function Reel() {
             strokeDashoffset={1 - streamIn}
           />
 
-          {/* anchor */}
+          {/* anchor — a soft pulse while the round is open, settling once it is scored */}
+          {anchorIn > 0.05 && (
+            <circle
+              cx={L.anchorX}
+              cy={priceToY(ANCHOR_PRICE)}
+              r={lerp(9, 20, (breathe + 1) / 2) * anchorIn * (1 - scoreIn * 0.7)}
+              fill="rgba(212,168,92,0.1)"
+            />
+          )}
           <circle
             cx={L.anchorX}
             cy={priceToY(ANCHOR_PRICE)}
@@ -621,7 +711,10 @@ export function Reel() {
             );
           })}
 
-          {/* reality */}
+          {/* reality — a leading marker rides the sweep so arrival has a focal point */}
+          {revealIn > 0.02 && revealIn < 0.99 && (
+            <PenTip d={L.actualPath} t={revealIn} color="var(--teal)" halo="rgba(103,193,180,0.16)" />
+          )}
           <path
             d={L.actualPath}
             fill="none"
@@ -647,17 +740,77 @@ export function Reel() {
         </svg>
         </div>
 
-        {/* freeze flash */}
+        {/* Ambient depth: a soft accent bloom that tracks the beat, a vignette, and a very
+            low-opacity grain. Cheap to composite and the three together are most of what
+            makes the frame feel finished rather than flat. */}
         <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            zIndex: 0,
+            background: `radial-gradient(60% 50% at ${lerp(30, 68, easeInOut(clamp01(p * 1.1)))}% ${lerp(
+              38,
+              54,
+              easeInOut(clamp01(p * 1.1)),
+            )}%, rgba(212,168,92,${(0.05 + payoutIn * 0.05).toFixed(3)}) 0%, rgba(212,168,92,0) 70%)`,
+            transition: 'background 240ms linear',
+          }}
+        />
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            zIndex: 2,
+            background:
+              'radial-gradient(124% 96% at 50% 45%, rgba(0,0,0,0) 64%, rgba(0,0,0,0.42) 100%)',
+          }}
+        />
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            zIndex: 2,
+            opacity: 0.035,
+            mixBlendMode: 'overlay',
+            backgroundImage: GRAIN_URI,
+            backgroundRepeat: 'repeat',
+          }}
+        />
+
+        {/* The freeze: a shutter sweeping across the plot, then a short bloom. */}
+        <div
+          aria-hidden="true"
           style={{
             position: 'absolute',
             inset: 0,
             background: '#fff',
-            opacity: flash * 0.07,
+            opacity: flash * 0.09,
             pointerEvents: 'none',
             zIndex: 2,
           }}
         />
+        {freeze > 0 && freeze < 1 && (
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              left: `${easeInOut(freeze) * 100}%`,
+              width: 2,
+              background: 'linear-gradient(to bottom, transparent, var(--accent), transparent)',
+              opacity: 0.5 * Math.sin(freeze * Math.PI),
+              pointerEvents: 'none',
+              zIndex: 2,
+            }}
+          />
+        )}
 
         {/* caption */}
         <div
@@ -673,41 +826,65 @@ export function Reel() {
             zIndex: 3,
           }}
         >
-          <div
-            className="dtc-data"
-            style={{ fontSize: 11, letterSpacing: 3, color: 'var(--accent)', marginBottom: 10 }}
-          >
-            {beat.kicker.toUpperCase()}
+          {/* All captions are stacked and cross-faded, so one beat's text is leaving while
+              the next arrives. Switching on a threshold made them pop in and out. */}
+          <div style={{ position: 'relative', width: '100%', minHeight: 'clamp(112px, 15svh, 168px)' }}>
+            {BEATS.map((b, i) => {
+              const c = captionState(i);
+              if (!c.active) return null;
+              return (
+                <div
+                  key={b.kicker}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    opacity: c.opacity,
+                    transform: `translate3d(0, ${c.drift.toFixed(2)}px, 0)`,
+                    willChange: 'opacity, transform',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <div
+                    className="dtc-data"
+                    style={{
+                      fontSize: 11,
+                      letterSpacing: 3,
+                      color: 'var(--accent)',
+                      marginBottom: 10,
+                      opacity: 0.9,
+                    }}
+                  >
+                    {b.kicker.toUpperCase()}
+                  </div>
+                  <h1
+                    className="dtc-display"
+                    style={{
+                      fontSize: 'clamp(26px, 5.2vw, 60px)',
+                      lineHeight: 1.06,
+                      letterSpacing: '-0.5px',
+                      color: 'var(--text-primary)',
+                      margin: 0,
+                    }}
+                  >
+                    {b.line}
+                  </h1>
+                  {'sub' in b && b.sub && (
+                    <p
+                      style={{
+                        maxWidth: 640,
+                        margin: '14px auto 0',
+                        fontSize: 'clamp(13px, 1.6vw, 17px)',
+                        lineHeight: 1.5,
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      {b.sub}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
-          <h1
-            className="dtc-display"
-            style={{
-              fontSize: 'clamp(26px, 5.2vw, 60px)',
-              lineHeight: 1.06,
-              letterSpacing: '-0.5px',
-              color: 'var(--text-primary)',
-              margin: 0,
-            }}
-          >
-            {beat.line}
-          </h1>
-
-          {/* The positioning line rides the opening beat and clears out once the reel
-              starts moving, so later beats stay cinematic. */}
-          {'sub' in beat && beat.sub && (
-            <p
-              style={{
-                maxWidth: 640,
-                margin: '14px auto 0',
-                fontSize: 'clamp(13px, 1.6vw, 17px)',
-                lineHeight: 1.5,
-                color: 'var(--text-secondary)',
-                opacity: 1 - seg(p, 0.05, 0.1),
-              }}
-            >
-              {beat.sub}
-            </p>
-          )}
 
           {/* stake, once committed */}
           <div
@@ -805,7 +982,7 @@ export function Reel() {
           </div>
 
           {/* the only clickable thing on the page */}
-          {payoutIn > 0.9 && (
+          {payoutIn > 0.86 && (
             <Link
               to="/play"
               style={{
@@ -818,6 +995,9 @@ export function Reel() {
                 borderRadius: 6,
                 background: 'var(--accent)',
                 color: '#120d09',
+                opacity: seg(payoutIn, 0.86, 1),
+                transform: `translate3d(0, ${lerp(14, 0, easeOut(seg(payoutIn, 0.86, 1))).toFixed(1)}px, 0)`,
+                boxShadow: `0 0 ${lerp(0, 40, seg(payoutIn, 0.9, 1)).toFixed(0)}px rgba(212,168,92,0.28)`,
               }}
             >
               Test now
@@ -869,7 +1049,17 @@ export function Reel() {
 }
 
 /** Marker that rides the drawn path, following the real SVG geometry. */
-function PenTip({ d, t }: { d: string; t: number }) {
+function PenTip({
+  d,
+  t,
+  color = 'var(--accent)',
+  halo = 'rgba(212,168,92,0.14)',
+}: {
+  d: string;
+  t: number;
+  color?: string;
+  halo?: string;
+}) {
   const ref = useRef<SVGPathElement>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
 
@@ -885,8 +1075,8 @@ function PenTip({ d, t }: { d: string; t: number }) {
       <path ref={ref} d={d} fill="none" stroke="none" />
       {pos && (
         <>
-          <circle cx={pos.x} cy={pos.y} r="15" fill="rgba(212,168,92,0.14)" />
-          <circle cx={pos.x} cy={pos.y} r="5" fill="var(--accent)" />
+          <circle cx={pos.x} cy={pos.y} r="15" fill={halo} />
+          <circle cx={pos.x} cy={pos.y} r="5" fill={color} />
         </>
       )}
     </>
