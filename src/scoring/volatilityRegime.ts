@@ -48,7 +48,7 @@ export function computeVolatilityScore(
   }
 
   const meanRelError = totalRelError / numQuarters;
-  return 10 * Math.exp(-config.volatilityMu * meanRelError);
+  return 5 * Math.exp(-config.volatilityMu * meanRelError);
 }
 
 function std(values: number[]): number {

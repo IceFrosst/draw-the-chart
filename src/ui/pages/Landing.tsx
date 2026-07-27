@@ -1,13 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { LoopScroller } from '../components/LoopScroller';
-import { DEFAULT_PAYOUT_CONFIG, getBreakEvenScore } from '../../scoring/payout';
-import {
-  formatMoney,
-  formatMultiplier,
-  formatProfit,
-  getPayoutExample,
-} from '../lib/payoutPresentation';
+import { mulberry32, STANDARD_PAYOUT_V3, DEFAULT_FIELD_CONFIG } from '../../scoring/v3/index';
 
 type PriceStatus = 'loading' | 'live' | 'offline';
 
@@ -78,214 +71,249 @@ function useLiveBtcPrice() {
   return { price, change24h, status };
 }
 
-export function Landing() {
-  const { price, change24h, status } = useLiveBtcPrice();
-  const breakEvenScore = getBreakEvenScore();
-  const payoutExamples = [40, 55, breakEvenScore, 70, 80, 90].map((score) =>
-    getPayoutExample(score, 100),
-  );
+// ─── hero: the mechanic, animated ────────────────────────────────────
 
+const ANCHOR = { x: 235, y: 152 };
+const END_X = 580;
+const GHOST_COUNT = 16;
+
+function walkPath(seedOffset: number, drift: number, wobble: number): string {
+  const rng = mulberry32(1013 + seedOffset);
+  const segments = 12;
+  let y = ANCHOR.y;
+  const pts = [`${ANCHOR.x},${ANCHOR.y}`];
+  for (let i = 1; i <= segments; i++) {
+    const x = ANCHOR.x + ((END_X - ANCHOR.x) * i) / segments;
+    y += drift + (rng() - 0.5) * wobble;
+    y = Math.max(28, Math.min(272, y));
+    pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+  }
+  return pts.join(' ');
+}
+
+function buildGhosts(): { points: string; opacity: number; delay: number }[] {
+  const rng = mulberry32(4242);
+  return Array.from({ length: GHOST_COUNT }, (_, i) => ({
+    points: walkPath(i * 17, (rng() - 0.5) * 9, 26 + rng() * 22),
+    opacity: 0.05 + rng() * 0.07,
+    delay: 0.15 + rng() * 0.9,
+  }));
+}
+
+const GHOSTS = buildGhosts();
+const PLAYER_PATH = `${ANCHOR.x},${ANCHOR.y} 285,128 330,112 370,124 415,102 465,88 520,94 ${END_X},72`;
+const ACTUAL_PATH = `${ANCHOR.x},${ANCHOR.y} 282,136 328,104 372,132 418,96 462,98 522,82 ${END_X},80`;
+const HISTORY_PATH = '20,180 52,168 84,176 118,158 150,164 184,144 214,150 235,152';
+
+function HeroChart() {
   return (
-    <div className="min-h-screen pt-12">
-      {/* Hero — tight, data-first */}
-      <section className="px-4 pt-8 pb-6 max-w-4xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
-          <div>
-            <h1
-              className="dtc-display text-2xl sm:text-3xl mb-1"
-              style={{ color: 'var(--text-primary)', lineHeight: 1.1 }}
-            >
-              Draw the path. Get scored.
-            </h1>
-            <p className="text-[13px]" style={{ color: 'var(--text-muted)', maxWidth: 420 }}>
-              Predict BTC price movement by drawing a chart. Scored on direction, magnitude, turns, and volatility.
-            </p>
-          </div>
-          <Link
-            to="/play"
-            className="px-5 py-2.5 text-[13px] font-semibold no-underline dtc-button-primary shrink-0 self-start sm:self-auto"
-          >
-            Start Drawing
-          </Link>
-        </div>
+    <div>
+      <div
+        className="rounded overflow-hidden"
+        style={{ border: '1px solid var(--border)' }}
+      >
+        <svg viewBox="0 0 600 300" className="w-full" style={{ display: 'block' }}>
+          <rect x="0" y="0" width="600" height="300" fill="var(--bg-primary)" />
+          {[60, 120, 180, 240].map((y) => (
+            <line key={y} x1="0" y1={y} x2="600" y2={y} stroke="rgba(255,255,255,0.03)" />
+          ))}
 
-        {/* Live ticker + stats row */}
-        <div
-          className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-lg overflow-hidden"
-          style={{ background: 'var(--border)', border: '1px solid var(--border)' }}
-        >
-          <div className="p-3" style={{ background: 'var(--bg-secondary)' }}>
-            <div className="dtc-eyebrow mb-1">BTC/USDT</div>
-            {status === 'loading' ? (
-              <div className="shimmer" style={{ width: 120, height: 22, borderRadius: 3 }} />
-            ) : price ? (
-              <div className="dtc-data text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
-                ${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </div>
-            ) : (
-              <div className="dtc-data text-lg font-semibold" style={{ color: 'var(--text-muted)' }}>
-                Offline
-              </div>
-            )}
-            {change24h != null && (
-              <div
-                className="dtc-data text-[11px] mt-0.5"
-                style={{ color: change24h >= 0 ? 'var(--green)' : 'var(--red)' }}
-              >
-                {change24h >= 0 ? '+' : ''}
-                {change24h.toFixed(2)}% 24h
-              </div>
-            )}
-          </div>
-          <div className="p-3" style={{ background: 'var(--bg-secondary)' }}>
-            <div className="dtc-eyebrow mb-1">Score Range</div>
-            <div className="dtc-data text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>0 - 100</div>
-            <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>4 components</div>
-          </div>
-          <div className="p-3" style={{ background: 'var(--bg-secondary)' }}>
-            <div className="dtc-eyebrow mb-1">Break-even</div>
-            <div className="dtc-data text-lg font-semibold" style={{ color: 'var(--accent)' }}>{breakEvenScore}</div>
-            <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>2% house edge</div>
-          </div>
-          <div className="p-3" style={{ background: 'var(--bg-secondary)' }}>
-            <div className="dtc-eyebrow mb-1">Max Payout</div>
-            <div className="dtc-data text-lg font-semibold" style={{ color: 'var(--green)' }}>
-              {DEFAULT_PAYOUT_CONFIG.maxMultiplier}x
-            </div>
-            <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Hard cap</div>
-          </div>
-        </div>
-      </section>
+          <rect x={ANCHOR.x} y="0" width={600 - ANCHOR.x} height="300" fill="rgba(212,168,92,0.025)" />
+          <line x1={ANCHOR.x} y1="0" x2={ANCHOR.x} y2="300" stroke="rgba(255,255,255,0.14)" strokeDasharray="3 3" />
+          <text x={ANCHOR.x - 6} y="290" textAnchor="end" fill="var(--text-muted)" fontSize="9" fontFamily="JetBrains Mono">
+            NOW
+          </text>
 
-      {/* Scroll-driven walkthrough of a full round */}
-      <LoopScroller />
+          <polyline
+            points={HISTORY_PATH}
+            fill="none"
+            stroke="var(--text-secondary)"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
 
-      {/* Payout reference table */}
-      <section className="px-4 pt-2 pb-6 max-w-4xl mx-auto">
-        <div className="grid grid-cols-1">
-          <div className="dtc-panel p-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="dtc-eyebrow">Payout Curve</span>
-              <span className="dtc-data text-xs" style={{ color: 'var(--text-muted)' }}>
-                $100 stake
-              </span>
-            </div>
-            <div className="overflow-hidden rounded" style={{ border: '1px solid var(--border)' }}>
-              <table className="w-full text-xs" style={{ borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
-                    <th className="text-left px-3 py-2 font-medium dtc-data" style={{ color: 'var(--text-muted)' }}>Score</th>
-                    <th className="text-right px-3 py-2 font-medium dtc-data" style={{ color: 'var(--text-muted)' }}>Mult</th>
-                    <th className="text-right px-3 py-2 font-medium dtc-data" style={{ color: 'var(--text-muted)' }}>Payout</th>
-                    <th className="text-right px-3 py-2 font-medium dtc-data" style={{ color: 'var(--text-muted)' }}>P&L</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payoutExamples.map((ex) => {
-                    const isBreakEven = ex.score === breakEvenScore;
-                    return (
-                      <tr
-                        key={ex.score}
-                        style={{
-                          borderTop: '1px solid var(--border)',
-                          background: isBreakEven ? 'var(--accent-soft)' : 'transparent',
-                        }}
-                      >
-                        <td className="px-3 py-2 dtc-data" style={{ color: isBreakEven ? 'var(--accent)' : 'var(--text-primary)' }}>
-                          {ex.score}{isBreakEven ? ' BE' : ''}
-                        </td>
-                        <td className="text-right px-3 py-2 dtc-data" style={{ color: 'var(--text-secondary)' }}>
-                          {formatMultiplier(ex.multiplier)}
-                        </td>
-                        <td className="text-right px-3 py-2 dtc-data" style={{ color: 'var(--text-secondary)' }}>
-                          {formatMoney(ex.payout)}
-                        </td>
-                        <td className="text-right px-3 py-2 dtc-data font-medium" style={{ color: ex.profit >= 0 ? 'var(--green)' : 'var(--red)' }}>
-                          {formatProfit(ex.profit)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
+          {GHOSTS.map((g, i) => (
+            <polyline
+              key={i}
+              className="dtc-hero-ghost"
+              style={{ ['--ghost-opacity' as string]: g.opacity, animationDelay: `${g.delay}s` }}
+              points={g.points}
+              fill="none"
+              stroke="#94a3b8"
+              strokeWidth="1"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          ))}
 
-      {/* Scoring components strip */}
-      <section className="px-4 pb-6 max-w-4xl mx-auto">
-        <div
-          className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-lg overflow-hidden"
-          style={{ background: 'var(--border)', border: '1px solid var(--border)' }}
-        >
-          <ScoreBlock label="Direction" points={40} desc="Multi-scale trend matching" />
-          <ScoreBlock label="Magnitude" points={30} desc="Bias + tracking accuracy" />
-          <ScoreBlock label="Turning Pts" points={20} desc="Peaks & troughs detection" />
-          <ScoreBlock label="Volatility" points={10} desc="Regime shape matching" />
-        </div>
-      </section>
+          <polyline
+            className="dtc-hero-line"
+            style={{ animationDelay: '1.0s' }}
+            pathLength={1}
+            points={PLAYER_PATH}
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth="2.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
 
-      {/* Timeframes + CTA */}
-      <section className="px-4 pb-6 max-w-4xl mx-auto">
-        <div className="dtc-panel p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="dtc-eyebrow">Timeframes</span>
-            {['15m', '1h', '6h', '24h', '7d'].map((tf) => (
-              <span
-                key={tf}
-                className="dtc-data text-[11px] px-2 py-0.5 rounded"
-                style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-secondary)',
-                }}
-              >
-                {tf}
-              </span>
-            ))}
-            <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>BTC only</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              to="/whitepaper"
-              className="px-3 py-1.5 text-xs font-medium no-underline dtc-button-secondary"
-            >
-              Paper
-            </Link>
-            <Link
-              to="/play"
-              className="px-3 py-1.5 text-xs font-semibold no-underline dtc-button-primary"
-            >
-              Open Sandbox
-            </Link>
-          </div>
-        </div>
-      </section>
+          <polyline
+            className="dtc-hero-line"
+            style={{ animationDelay: '1.9s' }}
+            pathLength={1}
+            points={ACTUAL_PATH}
+            fill="none"
+            stroke="var(--teal)"
+            strokeWidth="1.8"
+            strokeDasharray="1"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
 
-      {/* Footer */}
-      <footer className="px-4 pb-6 max-w-4xl mx-auto">
-        <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid var(--border)' }}>
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            DTC Sandbox. Not financial advice.
-          </span>
-          <span className="text-xs dtc-data" style={{ color: 'var(--text-muted)' }}>
-            v1.1
-          </span>
-        </div>
-      </footer>
+          <circle cx={ANCHOR.x} cy={ANCHOR.y} r="4" fill="var(--bg-primary)" stroke="var(--accent)" strokeWidth="1.5" />
+
+          <g className="dtc-hero-chip" style={{ animationDelay: '3.1s' }}>
+            <rect x="440" y="26" width="140" height="26" rx="13" fill="rgba(17,17,19,0.95)" stroke="rgba(34,197,94,0.45)" />
+            <text x="510" y="43" textAnchor="middle" fill="var(--green)" fontSize="11" fontWeight="700" fontFamily="JetBrains Mono">
+              TOP 6% · 5.14x
+            </text>
+          </g>
+        </svg>
+      </div>
+      <div className="flex items-center gap-5 mt-2.5 text-[10px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-muted)' }}>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block w-4 h-px" style={{ background: 'var(--accent)', height: 2 }} />
+          you
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block w-4" style={{ background: 'var(--teal)', height: 2 }} />
+          reality
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block w-4" style={{ background: '#94a3b8', height: 1, opacity: 0.5 }} />
+          the field · {DEFAULT_FIELD_CONFIG.B.toLocaleString()} forecasts
+        </span>
+      </div>
     </div>
   );
 }
 
-function ScoreBlock({ label, points, desc }: { label: string; points: number; desc: string }) {
+// ─── page ────────────────────────────────────────────────────────────
+
+export function Landing() {
+  const { price, change24h, status } = useLiveBtcPrice();
+  const breakEvenPct = Math.round(100 * STANDARD_PAYOUT_V3.breakEvenPercentile);
+
   return (
-    <div className="p-3" style={{ background: 'var(--bg-secondary)' }}>
-      <div className="flex items-center justify-between mb-0.5">
-        <span className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>{label}</span>
-        <span className="dtc-data text-[11px]" style={{ color: 'var(--accent)' }}>{points}</span>
+    <div className="min-h-screen pt-12 dtc-atmosphere">
+      <div className="max-w-5xl mx-auto px-6">
+        {/* Hero */}
+        <section className="grid grid-cols-1 lg:grid-cols-[0.95fr_1.05fr] gap-10 items-center pt-16 pb-14">
+          <div>
+            <div className="dtc-eyebrow mb-4">BTC price-path prediction</div>
+            <h1
+              className="dtc-display text-5xl sm:text-[62px] mb-5"
+              style={{ color: 'var(--text-primary)', lineHeight: 1.02 }}
+            >
+              Draw the chart.
+              <br />
+              <span className="dtc-display-em" style={{ color: 'var(--accent)' }}>
+                Beat the field.
+              </span>
+            </h1>
+            <p className="text-[15px] mb-7" style={{ color: 'var(--text-secondary)', maxWidth: 400, lineHeight: 1.65 }}>
+              Sketch where BTC goes next. Your line is ranked against{' '}
+              {DEFAULT_FIELD_CONFIG.B.toLocaleString()} simulated forecasts facing the same market —
+              beat enough of them and you profit.
+            </p>
+            <Link
+              to="/play"
+              className="px-6 py-3 text-sm font-semibold no-underline dtc-button-primary inline-block"
+            >
+              Start Drawing
+            </Link>
+          </div>
+          <HeroChart />
+        </section>
+
+        {/* Protocol stats strip */}
+        <section className="dtc-strip" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+          <div>
+            <div className="dtc-eyebrow mb-2">BTC / USDT</div>
+            {status === 'loading' ? (
+              <div className="shimmer" style={{ width: 110, height: 24, borderRadius: 3 }} />
+            ) : (
+              <div className="dtc-data text-xl" style={{ color: 'var(--text-primary)' }}>
+                {price
+                  ? `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  : '—'}
+              </div>
+            )}
+            <div className="dtc-data text-[11px] mt-1" style={{ color: change24h != null && change24h >= 0 ? 'var(--green)' : 'var(--red)' }}>
+              {change24h != null ? `${change24h >= 0 ? '+' : ''}${change24h.toFixed(2)}% 24h` : ' '}
+            </div>
+          </div>
+          <div>
+            <div className="dtc-eyebrow mb-2">The Field</div>
+            <div className="dtc-data text-xl" style={{ color: 'var(--text-primary)' }}>
+              {DEFAULT_FIELD_CONFIG.B.toLocaleString()}
+            </div>
+            <div className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>forecasts per round</div>
+          </div>
+          <div>
+            <div className="dtc-eyebrow mb-2">Break-even</div>
+            <div className="dtc-data text-xl" style={{ color: 'var(--accent)' }}>
+              Top {100 - breakEvenPct}%
+            </div>
+            <div className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+              {(100 * STANDARD_PAYOUT_V3.houseEdge).toFixed(0)}% edge, exact by construction
+            </div>
+          </div>
+          <div>
+            <div className="dtc-eyebrow mb-2">Max Payout</div>
+            <div className="dtc-data text-xl" style={{ color: 'var(--green)' }}>
+              {STANDARD_PAYOUT_V3.maxMultiplier}.00x
+            </div>
+            <div className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>beat the whole field</div>
+          </div>
+        </section>
+
+        {/* How one round works */}
+        <section className="py-14">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
+            <Step index="01" title="Draw your path">
+              Sketch where BTC goes over 15 minutes to 7 days. The chart freezes at the anchor — no take-backs.
+            </Step>
+            <Step index="02" title="Face the field">
+              {DEFAULT_FIELD_CONFIG.B.toLocaleString()} simulated forecasts — random walks, trend-followers,
+              mean-reverters — are measured against the same reality as you.
+            </Step>
+            <Step index="03" title="Get paid by rank">
+              Your score is the share of the field you beat. Top {100 - breakEvenPct}% breaks even;
+              beat everyone for {STANDARD_PAYOUT_V3.maxMultiplier}x.
+            </Step>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="dtc-hairline-top py-8">
+          <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+            Sandbox — historical data, no real money. Not financial advice.
+          </span>
+        </footer>
       </div>
-      <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{desc}</span>
+    </div>
+  );
+}
+
+function Step({ index, title, children }: { index: string; title: string; children: React.ReactNode }) {
+  return (
+    <div className="dtc-hairline-top pt-5">
+      <div className="dtc-data text-[11px] mb-3" style={{ color: 'var(--accent)' }}>{index}</div>
+      <div className="dtc-display text-[19px] mb-2" style={{ color: 'var(--text-primary)' }}>{title}</div>
+      <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>{children}</p>
     </div>
   );
 }

@@ -23,6 +23,9 @@ const Whitepaper = lazy(() =>
 const Validate = lazy(() =>
   import('./pages/Validate').then((module) => ({ default: module.Validate })),
 );
+const Admin = lazy(() =>
+  import('./pages/Admin').then((module) => ({ default: module.Admin })),
+);
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Draw The Chart',
@@ -32,16 +35,19 @@ const PAGE_TITLES: Record<string, string> = {
   '/leaderboard': 'Journal | Draw The Chart',
   '/whitepaper': 'Whitepaper | Draw The Chart',
   '/validate': 'Validate Scoring | Draw The Chart',
+  '/admin': 'Admin Dashboard | Draw The Chart',
 };
 
 const PAGE_DESCRIPTIONS: Record<string, string> = {
   '/': 'Bet on the shape of a price path. Draw what the market does next and get paid on how close you were.',
-  '/overview': 'Draw The Chart overview: scoring components, payout curve, and timeframes.',
+  '/overview':
+    'Draw The Chart overview: scoring components, payout curve, and timeframes.',
   '/play': 'Play the Draw The Chart sandbox, draw a BTC path, and see how the scoring and payout engine settle the round.',
   '/faq': 'Learn how Draw The Chart scoring, payout logic, sandbox rounds, and fairness model work.',
   '/leaderboard': 'Review locally saved Draw The Chart sandbox rounds, scores, multipliers, and payout outcomes in the round journal.',
   '/whitepaper': 'Read the Draw The Chart product paper covering the thesis, scoring engine, economics, and rollout design.',
   '/validate': 'Compare prediction pairs side-by-side and validate the DTC scoring algorithm against human judgment.',
+  '/admin': 'Admin dashboard for DTC testing analytics.',
 };
 
 function Layout() {
@@ -108,6 +114,7 @@ export function App() {
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/whitepaper" element={<Whitepaper />} />
           <Route path="/validate" element={<Validate />} />
+          <Route path="/admin" element={<Admin />} />
         </Route>
       </Routes>
     </BrowserRouter>

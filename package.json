@@ -15,6 +15,11 @@
     "backtest": "npx tsx src/backtest/run.ts",
     "economics": "npx tsx src/backtest/run.ts",
     "fairness": "npx tsx src/backtest/runFairness.ts",
+    "audit": "npx tsx src/scoring/runAudit.ts",
+    "sweep": "npx tsx src/scoring/parameterSweep.ts",
+    "simulate": "npx tsx src/scoring/payoutSimulation.ts",
+    "evolve": "npx tsx src/scoring/runEvolve.ts",
+    "feedback": "npx tsx src/scoring/runFeedbackLearn.ts",
     "server": "npx tsx src/server/index.ts",
     "whitepaper:export": "node scripts/exportWhitepaper.mjs"
   },

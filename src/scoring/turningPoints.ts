@@ -221,7 +221,7 @@ function pathCorrelation(a: number[], b: number[]): number {
 }
 
 /**
- * Component C: Turning Points (0–20 points)
+ * Component C: Turning Points (0–34 points)
  *
  * 1. Smooth both series with Gaussian kernel
  * 2. Find local extrema with prominence > 0.3σ
@@ -247,7 +247,7 @@ export function computeTurningPointScore(
     const predMean = predicted.reduce((s, v) => s + v, 0) / N;
     const predVar =
       predicted.reduce((s, v) => s + (v - predMean) ** 2, 0) / N;
-    return Math.sqrt(predVar) < 1e-10 ? 20 : 10;
+    return Math.sqrt(predVar) < 1e-10 ? 34 : 17;
   }
 
   // Gaussian smoothing
@@ -262,25 +262,25 @@ export function computeTurningPointScore(
 
   // If no actual turning points detected after smoothing, we can't do
   // extrema-matching. Instead, score based on overall shape similarity:
-  //   - A near-perfect tracker of a smooth trend deserves ~20/20
-  //   - A trivial flat line against a clear trend deserves ~10/20
+  //   - A near-perfect tracker of a smooth trend deserves ~34/34
+  //   - A trivial flat line against a clear trend deserves ~17/34
   //   - Hallucinated turns on a smooth path are penalized further
   if (actualExtrema.length === 0) {
     if (predExtrema.length === 0) {
       // Both smooth — use Pearson correlation on smoothed paths to measure fit
       const similarity = pathCorrelation(smoothedPred, smoothedActual);
-      // similarity 1.0 → 20, 0.0 → 10, -1.0 → 0
-      return Math.max(0, Math.min(20, 10 + 10 * similarity));
+      // similarity 1.0 -> 34, 0.0 -> 17, -1.0 -> 0
+      return Math.max(0, Math.min(34, 17 + 17 * similarity));
     }
     // Prediction hallucinated turns on a smooth actual path
     const penalty = predExtrema.length * config.turningPointHallucinationPenalty;
-    return Math.max(0, 10 * (1 - penalty));
+    return Math.max(0, 17 * (1 - penalty));
   }
 
   // If no predicted turning points, penalize for missing all actual
   if (predExtrema.length === 0) {
     const penalty = actualExtrema.length * config.turningPointMissPenalty;
-    return Math.max(0, 20 * (1 - penalty));
+    return Math.max(0, 34 * (1 - penalty));
   }
 
   // Build cost matrix for Hungarian matching
@@ -351,6 +351,6 @@ export function computeTurningPointScore(
     hallucinated * config.turningPointHallucinationPenalty;
   const missPenalty = missed * config.turningPointMissPenalty;
 
-  const score = 20 * Math.max(0, matchQuality - hallucinationPenalty - missPenalty);
-  return Math.min(20, Math.max(0, score));
+  const score = 34 * Math.max(0, matchQuality - hallucinationPenalty - missPenalty);
+  return Math.min(34, Math.max(0, score));
 }

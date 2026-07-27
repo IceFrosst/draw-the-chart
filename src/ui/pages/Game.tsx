@@ -1,25 +1,22 @@
-import { useState, useCallback, useRef, useEffect, useMemo, type ReactNode } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { DrawingChart, type DrawnPoint } from '../components/DrawingChart';
 import { usePriceData, TIMEFRAMES, type TimeframeKey, type CandleData } from '../hooks/usePriceData';
 import { computeScore, type ScoreBreakdown } from '../../scoring/index';
-import { computePayout, DEFAULT_PAYOUT_CONFIG } from '../../scoring/payout';
-import { PayoutCurve } from '../components/PayoutCurve';
+import { computePayout } from '../../scoring/payout';
+import { scoreRoundV3, computePayoutV3, STANDARD_PAYOUT_V3, type RoundV3Result } from '../../scoring/v3/index';
 import { TAOverlay, type TAToolType } from '../components/TAOverlay';
 import { TAToolbar } from '../components/TAToolbar';
 import {
   getDrawingConstraintSummary,
   normalizeDrawnPath,
 } from '../lib/drawingConstraints';
-import { getRoundAssessment } from '../lib/roundInsights';
 import {
   appendRoundHistory,
   createRoundHistoryEntry,
-  loadRoundHistory,
 } from '../lib/roundHistory';
 import { isSupabaseConfigured } from '../../lib/supabase';
-import { persistRound, type RoundInsertData } from '../../lib/roundPersistence';
-import { FeedbackModal } from '../components/FeedbackModal';
+import { persistRound } from '../../lib/roundPersistence';
 
 const TIMEFRAME_KEYS: TimeframeKey[] = ['15m', '1h', '6h', '24h', '7d'];
 const DEFAULT_TIMEFRAME: TimeframeKey = '1h';
@@ -28,38 +25,12 @@ const MIN_STAKE = 10;
 const MAX_STAKE = 1000;
 const STORAGE_TIMEFRAME_KEY = 'dtc.preferences.timeframe';
 const STORAGE_STAKE_KEY = 'dtc.preferences.stake';
-const STORAGE_DRAW_GUIDE_COLLAPSED_KEY = 'dtc.preferences.drawGuideCollapsed';
-const MAX_MULTIPLIER = DEFAULT_PAYOUT_CONFIG.maxMultiplier;
 const FOOTER_ACTION_BUTTON_CLASS =
-  'h-10 w-[112px] px-4 inline-flex items-center justify-center whitespace-nowrap text-xs transition-colors dtc-button-secondary shrink-0';
+  'h-10 px-5 inline-flex items-center justify-center whitespace-nowrap text-xs transition-colors dtc-button-secondary shrink-0';
 const FOOTER_PRIMARY_BUTTON_CLASS =
-  'h-10 w-[112px] px-5 inline-flex items-center justify-center whitespace-nowrap text-xs font-semibold transition-all dtc-button-primary shrink-0';
+  'h-10 px-6 inline-flex items-center justify-center whitespace-nowrap text-xs font-semibold transition-all dtc-button-primary shrink-0';
 
 type GamePhase = 'setup' | 'drawing' | 'submitted';
-
-/** Tailwind's `sm` breakpoint — below it the chart pane is too narrow to share
- *  with the score panel. */
-const SCORE_PANEL_MIN_WIDTH = 640;
-
-function startsWithScoreCollapsed(): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.innerWidth < SCORE_PANEL_MIN_WIDTH;
-}
-
-function getToolLabel(tool: TAToolType): string {
-  switch (tool) {
-    case 'trendline':
-      return 'Trend line';
-    case 'ray':
-      return 'Ray';
-    case 'hline':
-      return 'H-line';
-    case 'fib':
-      return 'Fib';
-    default:
-      return 'Cursor';
-  }
-}
 
 function isTimeframeKey(value: string | null): value is TimeframeKey {
   return value != null && TIMEFRAME_KEYS.includes(value as TimeframeKey);
@@ -87,31 +58,6 @@ function readStoredStake(): number {
   if (typeof window === 'undefined') return DEFAULT_STAKE;
   const stored = Number.parseInt(window.localStorage.getItem(STORAGE_STAKE_KEY) ?? '', 10);
   return clampStake(stored);
-}
-
-function readStoredDrawGuideCollapsed(): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.localStorage.getItem(STORAGE_DRAW_GUIDE_COLLAPSED_KEY) === 'true';
-}
-
-function buildRoundUrl(seed: number, timeframe: TimeframeKey): string {
-  const url = new URL(window.location.href);
-  url.pathname = '/play';
-  url.searchParams.set('tf', timeframe);
-  url.searchParams.set('seed', String(seed));
-  return url.toString();
-}
-
-function downloadJson(filename: string, payload: unknown) {
-  const blob = new Blob([JSON.stringify(payload, null, 2)], {
-    type: 'application/json',
-  });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
 }
 
 function resampleDrawnPath(path: DrawnPoint[], numSamples: number): number[] {
@@ -152,37 +98,25 @@ export function Game() {
   const [locked, setLocked] = useState(initialSeedRef.current != null);
   const [roundSeed, setRoundSeed] = useState<number | null>(initialSeedRef.current);
   const [drawnPath, setDrawnPath] = useState<DrawnPoint[] | null>(null);
-  const [normalizedPath, setNormalizedPath] = useState<DrawnPoint[] | null>(null);
   const [score, setScore] = useState<ScoreBreakdown | null>(null);
+  const [scoreV3, setScoreV3] = useState<RoundV3Result | null>(null);
   const [replayProgress, setReplayProgress] = useState<number>(0);
   const [isReplaying, setIsReplaying] = useState(false);
-  // On phones the breakdown panel would cover the chart, hiding the drawing-vs-actual
-  // comparison that is the point of the reveal. Start it collapsed there — the footer
-  // still shows the total, and "Show Score" opens the full breakdown.
-  const [scoreHidden, setScoreHidden] = useState(startsWithScoreCollapsed);
   const [stake, setStake] = useState<number>(() => readStoredStake());
   const [resampledPath, setResampledPath] = useState<DrawnPoint[] | null>(null);
-  const [roundLogCount, setRoundLogCount] = useState<number>(() => loadRoundHistory().length);
   const replayRef = useRef<number>(0);
-  const copyTimeoutRef = useRef<number | null>(null);
   const savedHistoryEntryIdRef = useRef<string | null>(null);
   const lockTimestampRef = useRef<number | null>(null);
-  const [supabaseRoundId, setSupabaseRoundId] = useState<string | null>(null);
-  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [linkStatus, setLinkStatus] = useState<'idle' | 'copied' | 'error'>('idle');
-  const [drawGuideCollapsed, setDrawGuideCollapsed] = useState<boolean>(() =>
-    readStoredDrawGuideCollapsed(),
-  );
 
-  // TA tools state
-  const [showAdvancedTools, setShowAdvancedTools] = useState(false);
+  // TA tools — opt-in, so a first-time player sees only the chart
+  const [showTools, setShowTools] = useState(false);
   const [activeTATool, setActiveTATool] = useState<TAToolType>('none');
   const [taDrawingCount, setTaDrawingCount] = useState(0);
   const [taKey, setTaKey] = useState(0);
-
-  // Chart API refs for TA overlay (set via onChartReady callback)
   const [chartApi, setChartApi] = useState<import('lightweight-charts').IChartApi | null>(null);
-  const [seriesApi, setSeriesApi] = useState<import('lightweight-charts').ISeriesApi<import('lightweight-charts').SeriesType> | null>(null);
+  const [seriesApi, setSeriesApi] = useState<
+    import('lightweight-charts').ISeriesApi<import('lightweight-charts').SeriesType> | null
+  >(null);
 
   const {
     preview,
@@ -190,35 +124,45 @@ export function Game() {
     future,
     loading,
     error,
-    isLive,
     maxHourlyLogMove,
   } = usePriceData(timeframe, locked, roundSeed);
+  /** A TA tool takes over the pointer, so freehand capture must stand down. */
+  const taToolActive = showTools && activeTATool !== 'none';
   const chartData = locked ? history : preview;
   const lastChartCandle = chartData.length > 0 ? chartData[chartData.length - 1]! : null;
-  const prevChartCandle =
-    chartData.length > 1 ? chartData[chartData.length - 2]! : lastChartCandle;
-  const chartChange =
-    lastChartCandle && prevChartCandle
-      ? lastChartCandle.close - prevChartCandle.close
-      : 0;
-  const chartChangePct =
-    lastChartCandle && prevChartCandle && prevChartCandle.close > 0
-      ? (chartChange / prevChartCandle.close) * 100
-      : 0;
-  const chartHigh =
-    chartData.length > 0 ? Math.max(...chartData.map((candle) => candle.high)) : null;
-  const chartLow =
-    chartData.length > 0 ? Math.min(...chartData.map((candle) => candle.low)) : null;
-  const drawingRules = useMemo(
-    () => getDrawingConstraintSummary(timeframe, maxHourlyLogMove),
-    [timeframe, maxHourlyLogMove],
-  );
   const roundCode = roundSeed != null ? String(roundSeed).slice(-6).padStart(6, '0') : null;
 
+  const handleChartReady = useCallback(
+    (
+      chart: import('lightweight-charts').IChartApi,
+      series: import('lightweight-charts').ISeriesApi<import('lightweight-charts').SeriesType>,
+    ) => {
+      setChartApi(chart);
+      setSeriesApi(series);
+    },
+    [],
+  );
+
+  const handleClearTA = useCallback(() => {
+    setTaKey((key) => key + 1);
+    setTaDrawingCount(0);
+    setActiveTATool('none');
+  }, []);
+
+  const handleToggleTools = useCallback(() => {
+    setShowTools((current) => {
+      if (current) setActiveTATool('none');
+      return !current;
+    });
+  }, []);
+
+  const handleSelectTATool = useCallback((tool: TAToolType) => {
+    setActiveTATool(tool);
+  }, []);
+
   const handleLockStart = useCallback(() => {
-    setLinkStatus('idle');
     savedHistoryEntryIdRef.current = null;
-    setShowAdvancedTools(false);
+    setShowTools(false);
     setActiveTATool('none');
     lockTimestampRef.current = Date.now();
     setRoundSeed(Date.now());
@@ -262,11 +206,25 @@ export function Game() {
       time: tStart + (i / (predictedPrices.length - 1)) * (tEnd - tStart),
       price,
     }));
-    setNormalizedPath(normalized);
     setResampledPath(resampledPoints);
 
     const result = computeScore(predictedPrices, actualPrices);
     setScore(result);
+
+    // v3 field-relative scoring: rank the drawing against a
+    // deterministic synthetic field conditioned on the lookback window.
+    try {
+      const v3 = scoreRoundV3({
+        predictedPrices,
+        actualPrices,
+        lookbackPrices: history.map((c) => c.close),
+        seed: (roundSeed ?? Date.now()) % 2147483647,
+      });
+      setScoreV3(v3);
+    } catch {
+      setScoreV3(null);
+    }
+
     setPhase('submitted');
 
     setReplayProgress(0);
@@ -286,33 +244,26 @@ export function Game() {
       }
     };
     requestAnimationFrame(animate);
-  }, [drawnPath, future, history, timeframe, maxHourlyLogMove]);
-
-  const handleChartReady = useCallback((chart: import('lightweight-charts').IChartApi, series: import('lightweight-charts').ISeriesApi<import('lightweight-charts').SeriesType>) => {
-    setChartApi(chart);
-    setSeriesApi(series);
-  }, []);
+  }, [drawnPath, future, history, timeframe, maxHourlyLogMove, roundSeed]);
 
   const handleReset = useCallback(() => {
     setPhase('setup');
     setLocked(false);
     setRoundSeed(null);
     setDrawnPath(null);
-    setNormalizedPath(null);
     setResampledPath(null);
     setScore(null);
+    setScoreV3(null);
     setReplayProgress(0);
     setIsReplaying(false);
-    setScoreHidden(startsWithScoreCollapsed());
-    setLinkStatus('idle');
-    setShowAdvancedTools(false);
+    setShowTools(false);
     setActiveTATool('none');
+    setTaDrawingCount(0);
+    setTaKey((key) => key + 1);
     setChartApi(null);
     setSeriesApi(null);
     savedHistoryEntryIdRef.current = null;
     lockTimestampRef.current = null;
-    setSupabaseRoundId(null);
-    setShowFeedbackModal(false);
     replayRef.current++;
   }, []);
 
@@ -320,26 +271,6 @@ export function Game() {
     if (!drawingEnabled) return;
     setDrawnPath(null);
   }, [drawingEnabled]);
-
-  const handleClearTA = useCallback(() => {
-    setTaKey(k => k + 1);
-    setTaDrawingCount(0);
-    setActiveTATool('none');
-  }, []);
-
-  const handleToggleAdvancedTools = useCallback(() => {
-    setShowAdvancedTools((current) => {
-      if (current) {
-        setActiveTATool('none');
-      }
-      return !current;
-    });
-  }, []);
-
-  const handleSelectTATool = useCallback((tool: TAToolType) => {
-    setShowAdvancedTools(true);
-    setActiveTATool(tool);
-  }, []);
 
   const visibleFuture: CandleData[] | undefined = phase === 'submitted' && future.length > 0
     ? future.slice(0, Math.max(1, Math.ceil(future.length * replayProgress)))
@@ -349,59 +280,10 @@ export function Game() {
     () => (score ? computePayout(score.total, stake) : null),
     [score, stake],
   );
-  const roundAssessment = useMemo(
-    () => (score && payoutInfo ? getRoundAssessment(score, payoutInfo.multiplier) : null),
-    [payoutInfo, score],
+  const payoutInfoV3 = useMemo(
+    () => (scoreV3 ? computePayoutV3(scoreV3.percentile, stake) : null),
+    [scoreV3, stake],
   );
-  const maxPayout = stake * MAX_MULTIPLIER;
-  const roundExport = useMemo(() => {
-    if (roundSeed == null) return null;
-
-    return {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      round: {
-        seed: roundSeed,
-        code: roundCode,
-        instrument: 'BTC/USDT',
-        timeframe,
-        stake,
-        phase,
-      },
-      anchor:
-        lastChartCandle != null
-          ? {
-              time: lastChartCandle.time,
-              price: lastChartCandle.close,
-            }
-          : null,
-      prediction: {
-        rawPath: drawnPath,
-        normalizedPath,
-        resampledPath,
-      },
-      settlement: {
-        history,
-        actualFuture: future,
-        score,
-        payout: payoutInfo,
-      },
-    };
-  }, [
-    drawnPath,
-    future,
-    history,
-    lastChartCandle,
-    normalizedPath,
-    payoutInfo,
-    phase,
-    resampledPath,
-    roundCode,
-    roundSeed,
-    score,
-    stake,
-    timeframe,
-  ]);
   const roundHistoryEntry = useMemo(() => {
     if (roundSeed == null || roundCode == null || score == null || payoutInfo == null) {
       return null;
@@ -414,6 +296,16 @@ export function Game() {
       stake,
       score,
       payout: payoutInfo,
+      fieldScore:
+        scoreV3 && payoutInfoV3
+          ? {
+              percentile: scoreV3.percentile,
+              beaten: scoreV3.beaten,
+              fieldSize: scoreV3.fieldSize,
+              multiplier: payoutInfoV3.multiplier,
+              profit: payoutInfoV3.profit,
+            }
+          : undefined,
       historyPoints: history.length,
       futurePoints: future.length,
     });
@@ -421,9 +313,11 @@ export function Game() {
     future.length,
     history.length,
     payoutInfo,
+    payoutInfoV3,
     roundCode,
     roundSeed,
     score,
+    scoreV3,
     stake,
     timeframe,
   ]);
@@ -434,52 +328,12 @@ export function Game() {
       setTimeframe(tf);
       setTaKey((key) => key + 1);
       setTaDrawingCount(0);
-      setShowAdvancedTools(false);
       setActiveTATool('none');
     },
     [phase],
   );
 
   const hasDrawing = drawnPath != null && drawnPath.length >= 2;
-  const phaseStep = phase === 'setup' ? 0 : phase === 'drawing' ? 1 : 2;
-  const activeToolLabel = getToolLabel(activeTATool);
-
-  const handleCopyRoundLink = useCallback(async () => {
-    if (roundSeed == null) return;
-    const url = buildRoundUrl(roundSeed, timeframe);
-
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url);
-      } else {
-        const textarea = document.createElement('textarea');
-        textarea.value = url;
-        textarea.setAttribute('readonly', 'true');
-        textarea.style.position = 'absolute';
-        textarea.style.left = '-9999px';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-      }
-      setLinkStatus('copied');
-    } catch {
-      setLinkStatus('error');
-    }
-
-    if (copyTimeoutRef.current != null) {
-      window.clearTimeout(copyTimeoutRef.current);
-    }
-    copyTimeoutRef.current = window.setTimeout(() => {
-      setLinkStatus('idle');
-      copyTimeoutRef.current = null;
-    }, 2200);
-  }, [roundSeed, timeframe]);
-
-  const handleExportRound = useCallback(() => {
-    if (!roundExport || roundSeed == null) return;
-    downloadJson(`dtc-round-${roundCode ?? roundSeed}-${timeframe}.json`, roundExport);
-  }, [roundCode, roundExport, roundSeed, timeframe]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -515,19 +369,10 @@ export function Game() {
   }, [stake]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(
-      STORAGE_DRAW_GUIDE_COLLAPSED_KEY,
-      String(drawGuideCollapsed),
-    );
-  }, [drawGuideCollapsed]);
-
-  useEffect(() => {
     if (!roundHistoryEntry) return;
     if (savedHistoryEntryIdRef.current === roundHistoryEntry.id) return;
 
-    const nextEntries = appendRoundHistory(roundHistoryEntry);
-    setRoundLogCount(nextEntries.length);
+    appendRoundHistory(roundHistoryEntry);
     savedHistoryEntryIdRef.current = roundHistoryEntry.id;
 
     // Persist to Supabase in parallel (non-blocking)
@@ -551,11 +396,8 @@ export function Game() {
         drawingDurationSeconds: lockTimestampRef.current
           ? (Date.now() - lockTimestampRef.current) / 1000
           : 0,
-      }).then((id) => {
-        if (id) {
-          setSupabaseRoundId(id);
-          setShowFeedbackModal(true);
-        }
+      }).catch(() => {
+        // best-effort persistence: never let a dead backend affect gameplay
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -576,14 +418,6 @@ export function Game() {
   }, [roundSeed, searchParams, setSearchParams, timeframe]);
 
   useEffect(() => {
-    return () => {
-      if (copyTimeoutRef.current != null) {
-        window.clearTimeout(copyTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
     const previousBodyOverflow = document.body.style.overflow;
     const previousHtmlOverflow = document.documentElement.style.overflow;
     const previousBodyOverscroll = document.body.style.overscrollBehavior;
@@ -602,18 +436,6 @@ export function Game() {
     };
   }, []);
 
-  useEffect(() => {
-    function handleStorage() {
-      setRoundLogCount(loadRoundHistory().length);
-    }
-
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, []);
-
-  // Determine if TA tool should intercept pointer events (only when a TA tool is active)
-  const taToolActive = showAdvancedTools && activeTATool !== 'none';
-
   return (
     <div
       className="flex flex-col"
@@ -627,74 +449,27 @@ export function Game() {
         background: 'var(--bg-primary)',
       }}
     >
-      {/* Game top bar */}
+      {/* Single control bar: instrument · horizon · stake */}
       <div
-        className="flex items-center justify-between px-2 sm:px-4 h-10 shrink-0 gap-2 overflow-x-auto"
+        className="flex items-center justify-between px-3 sm:px-4 h-11 shrink-0 gap-3"
         style={{
           borderBottom: '1px solid var(--border)',
           background: 'var(--bg-secondary)',
         }}
       >
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <span className="dtc-chip">
-            BTC/USDT
-          </span>
-          {phase === 'drawing' && (
-            <span
-              className="dtc-chip"
-              style={{
-                background: 'var(--accent-soft)',
-                borderColor: 'rgba(212, 168, 92, 0.2)',
-                color: 'var(--accent)',
-              }}
-            >
-              DRAWING
-            </span>
-          )}
-          {phase === 'submitted' && (
-            <span
-              className="dtc-chip"
-              style={{
-                background: 'var(--green-soft)',
-                borderColor: 'rgba(34, 197, 94, 0.15)',
-                color: 'var(--green)',
-              }}
-            >
-              SCORED
-            </span>
-          )}
-          {phase === 'setup' && (
-            <span className="hidden sm:flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
-              {isLive && (
-                <span className="flex items-center gap-1">
-                  <span
-                    className="inline-block w-1.5 h-1.5 rounded-full"
-                    style={{ background: 'var(--green)' }}
-                  />
-                  <span style={{ color: 'var(--green)' }}>LIVE</span>
-                </span>
-              )}
-              Sandbox
-            </span>
-          )}
-          {roundSeed != null && phase !== 'setup' && (
-            /* Wrapper carries the responsive display: `.dtc-chip` sets `display:
-               inline-flex` from unlayered CSS, which outranks Tailwind's `hidden`
-               utility, so `hidden md:inline` on the chip itself never applied. */
-            <span className="hidden md:contents">
-              <span className="dtc-chip" style={{ color: 'var(--text-secondary)' }}>
-                round {roundCode}
-              </span>
-            </span>
-          )}
-        </div>
+        <span
+          className="dtc-data text-xs shrink-0"
+          style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}
+        >
+          BTC/USDT
+        </span>
 
-        {/* Timeframe selector */}
         <div
-          className="flex items-center gap-0.5 p-0.5 shrink-0 rounded"
+          className="flex items-center gap-0.5 p-0.5 shrink-0"
           style={{
-            background: 'rgba(255,255,255,0.03)',
+            background: 'rgba(255,255,255,0.02)',
             border: '1px solid var(--border)',
+            borderRadius: 'var(--radius)',
           }}
         >
           {TIMEFRAME_KEYS.map((tfKey) => (
@@ -702,18 +477,14 @@ export function Game() {
               key={tfKey}
               onClick={() => handleTimeframeChange(tfKey)}
               disabled={phase !== 'setup'}
-              // Once a round is locked these are disabled anyway, so on phones the
-              // inactive ones only push the stake control off-screen. Hide them there
-              // and keep the active timeframe visible as a label.
-              className={`px-2 sm:px-3 py-1 text-xs transition-all dtc-data rounded ${
-                phase !== 'setup' && timeframe !== tfKey ? 'hidden sm:block' : ''
-              }`}
+              className="px-3 py-1 text-xs transition-all dtc-data"
               style={{
                 background:
-                  timeframe === tfKey ? 'rgba(255,255,255,0.08)' : 'transparent',
+                  timeframe === tfKey ? 'rgba(212, 168, 92, 0.14)' : 'transparent',
                 color:
-                  timeframe === tfKey ? 'var(--text-primary)' : 'var(--text-muted)',
+                  timeframe === tfKey ? 'var(--accent)' : 'var(--text-muted)',
                 border: 'none',
+                borderRadius: '1px',
                 cursor: phase !== 'setup' ? 'default' : 'pointer',
                 opacity: phase !== 'setup' && timeframe !== tfKey ? 0.3 : 1,
                 fontWeight: timeframe === tfKey ? 600 : 400,
@@ -724,57 +495,36 @@ export function Game() {
           ))}
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <div className="flex items-center gap-1 sm:gap-2">
-            <span className="hidden sm:inline text-[10px] dtc-eyebrow" style={{ color: 'var(--text-muted)' }}>Stake</span>
-            <div
-              className="flex items-center overflow-hidden rounded"
-              style={{
-                border: '1px solid var(--border)',
-                background: 'rgba(255,255,255,0.03)',
-              }}
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="hidden sm:inline dtc-eyebrow" style={{ color: 'var(--text-muted)' }}>
+            Stake
+          </span>
+          <div
+            className="flex items-center overflow-hidden rounded"
+            style={{
+              border: '1px solid var(--border)',
+              background: 'rgba(255,255,255,0.03)',
+            }}
+          >
+            <button
+              onClick={() => setStake((current) => clampStake(current - 10))}
+              disabled={phase !== 'setup'}
+              className="px-2 py-1 text-xs dtc-data"
+              style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
+            >-</button>
+            <span
+              className="px-2 py-1 text-xs dtc-data"
+              style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', minWidth: '52px', textAlign: 'center' }}
             >
-              <button
-                onClick={() => setStake((current) => clampStake(current - 10))}
-                disabled={phase !== 'setup'}
-                className="px-1.5 py-0.5 text-xs dtc-data"
-                style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
-              >-</button>
-              <span className="px-2 py-0.5 text-xs dtc-data" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', minWidth: '48px', textAlign: 'center' }}>
-                ${stake}
-              </span>
-              <button
-                onClick={() => setStake((current) => clampStake(current + 10))}
-                disabled={phase !== 'setup'}
-                className="px-1.5 py-0.5 text-xs dtc-data"
-                style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
-              >+</button>
-            </div>
-          </div>
-          {phase === 'setup' && (
-            <span className="hidden md:inline text-[11px] dtc-data" style={{ color: 'var(--text-muted)' }}>
-              Max <span style={{ color: 'var(--teal)' }}>${maxPayout.toLocaleString()}</span>
+              ${stake}
             </span>
-          )}
-        </div>
-      </div>
-
-      <div
-        className="shrink-0 px-2 sm:px-4 py-1.5 flex items-center justify-between gap-3 overflow-x-auto"
-        style={{
-          borderBottom: '1px solid var(--border)',
-          background: 'var(--bg-primary)',
-        }}
-      >
-        <div className="flex items-center gap-2 min-w-max">
-          <PhaseStep index={1} title="Setup" active={phaseStep === 0} complete={phaseStep > 0} />
-          <PhaseStep index={2} title="Draw" active={phaseStep === 1} complete={phaseStep > 1} />
-          <PhaseStep index={3} title="Reveal" active={phaseStep === 2} complete={false} />
-        </div>
-        <div className="hidden md:flex items-center gap-2 text-xs dtc-data" style={{ color: 'var(--text-secondary)' }}>
-          <span className="dtc-chip">Tool {activeToolLabel}</span>
-          {roundCode && <span className="dtc-chip">Round {roundCode}</span>}
-          <span className="dtc-chip">{TIMEFRAMES[timeframe].interval} candles</span>
+            <button
+              onClick={() => setStake((current) => clampStake(current + 10))}
+              disabled={phase !== 'setup'}
+              className="px-2 py-1 text-xs dtc-data"
+              style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
+            >+</button>
+          </div>
         </div>
       </div>
 
@@ -790,62 +540,26 @@ export function Game() {
             }}
           >
             <div
-              className="dtc-panel max-w-[440px] w-full mx-4 p-5"
-              style={{ background: 'var(--bg-secondary)' }}
+              className="dtc-panel max-w-[400px] w-full mx-4 p-7 text-center"
+              style={{ background: 'var(--bg-secondary)', boxShadow: 'var(--shadow-md)' }}
             >
-              <div className="flex items-center justify-between mb-4">
-                <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  Draw the next {TIMEFRAMES[timeframe].label}
-                </h1>
-                <span className="dtc-chip" style={{ color: 'var(--green)', background: 'var(--green-soft)', borderColor: 'rgba(34,197,94,0.15)' }}>
-                  Sandbox
+              <div className="dtc-eyebrow mb-3">Round setup</div>
+              <h1 className="dtc-display text-[30px] mb-3" style={{ color: 'var(--text-primary)', lineHeight: 1.15 }}>
+                Draw the next{' '}
+                <span className="dtc-display-em" style={{ color: 'var(--accent)' }}>
+                  {TIMEFRAMES[timeframe].label}
                 </span>
-              </div>
-
-              <div
-                className="grid grid-cols-4 gap-px rounded overflow-hidden mb-4"
-                style={{ background: 'var(--border)', border: '1px solid var(--border)' }}
-              >
-                <div className="p-2.5 text-center" style={{ background: 'var(--bg-primary)' }}>
-                  <div className="dtc-eyebrow mb-1">Points</div>
-                  <div className="dtc-data text-xs" style={{ color: 'var(--text-primary)' }}>{drawingRules.controlPoints}</div>
-                </div>
-                <div className="p-2.5 text-center" style={{ background: 'var(--bg-primary)' }}>
-                  <div className="dtc-eyebrow mb-1">Spacing</div>
-                  <div className="dtc-data text-xs" style={{ color: 'var(--text-primary)' }}>{Math.round(drawingRules.minSpacingSeconds / 60)}m</div>
-                </div>
-                <div className="p-2.5 text-center" style={{ background: 'var(--bg-primary)' }}>
-                  <div className="dtc-eyebrow mb-1">Slope Cap</div>
-                  <div className="dtc-data text-xs" style={{ color: 'var(--text-primary)' }}>{(drawingRules.maxSlopeLogMovePerHour * 100).toFixed(1)}%/h</div>
-                </div>
-                <div className="p-2.5 text-center" style={{ background: 'var(--bg-primary)' }}>
-                  <div className="dtc-eyebrow mb-1">Stake</div>
-                  <div className="dtc-data text-xs" style={{ color: 'var(--text-primary)' }}>${stake}</div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
-                <span>Direction 40</span>
-                <span style={{ color: 'var(--border-strong)' }}>|</span>
-                <span>Magnitude 30</span>
-                <span style={{ color: 'var(--border-strong)' }}>|</span>
-                <span>Turns 20</span>
-                <span style={{ color: 'var(--border-strong)' }}>|</span>
-                <span>Vol 10</span>
-              </div>
-
+              </h1>
+              <p className="text-[13px] mb-7" style={{ color: 'var(--text-secondary)', lineHeight: 1.65 }}>
+                Sketch where BTC goes. Your line is ranked against 5,000 simulated
+                forecasts facing the same market.
+              </p>
               <button
                 onClick={handleLockStart}
-                className="w-full px-5 py-2.5 text-sm font-semibold dtc-button-primary"
+                className="w-full px-5 py-3 text-sm font-semibold dtc-button-primary"
               >
                 Start Round
               </button>
-
-              {roundLogCount > 0 && (
-                <div className="mt-3 text-xs dtc-data text-center" style={{ color: 'var(--text-muted)' }}>
-                  {roundLogCount} rounds in local journal
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -855,15 +569,7 @@ export function Game() {
             className="absolute inset-0 z-20 p-4"
             style={{ background: 'var(--bg-primary)' }}
           >
-            <div className="h-full flex flex-col gap-3">
-              <div className="flex-1 rounded-lg shimmer" />
-              <div className="flex gap-4">
-                <div className="h-3 w-24 rounded shimmer" />
-                <div className="h-3 w-32 rounded shimmer" />
-                <div className="h-3 w-20 rounded shimmer" />
-                <div className="h-3 w-28 rounded shimmer" />
-              </div>
-            </div>
+            <div className="h-full rounded-lg shimmer" />
           </div>
         )}
 
@@ -883,94 +589,15 @@ export function Game() {
           </div>
         )}
 
-        {chartData.length > 0 && !loading && (
-          <div
-            className="absolute top-2 right-3 z-10 hidden lg:flex items-center justify-between gap-4 px-3 py-2 rounded-lg"
-            style={{
-              left: '78px',
-              background: 'rgba(17, 17, 19, 0.9)',
-              border: '1px solid var(--border)',
-              backdropFilter: 'blur(12px)',
-            }}
-          >
-            <div className="flex items-center gap-5">
-              <div>
-                <div className="dtc-eyebrow" style={{ color: 'var(--text-muted)' }}>
-                  Instrument
-                </div>
-                <div className="flex items-end gap-2 flex-wrap">
-                  <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                    BTC/USDT
-                  </span>
-                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    {TIMEFRAMES[timeframe].label} sandbox round
-                  </span>
-                  {roundCode && (
-                    <span className="text-xs dtc-data" style={{ color: 'var(--text-muted)' }}>
-                      seed {roundCode}
-                    </span>
-                  )}
-                </div>
-              </div>
-              {lastChartCandle && (
-                <div>
-                  <div className="dtc-eyebrow" style={{ color: 'var(--text-muted)' }}>
-                    Last close
-                  </div>
-                  <div className="flex items-end gap-2">
-                    <span className="text-lg font-semibold dtc-data" style={{ color: 'var(--text-primary)' }}>
-                      {lastChartCandle.close.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </span>
-                    <span
-                      className="text-xs font-medium dtc-data"
-                      style={{ color: chartChange >= 0 ? 'var(--green)' : 'var(--red)' }}
-                    >
-                      {chartChange >= 0 ? '+' : ''}
-                      {chartChange.toFixed(2)} ({chartChangePct.toFixed(2)}%)
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-4 text-xs dtc-data" style={{ color: 'var(--text-secondary)' }}>
-              <div className="flex items-center gap-3">
-                {chartHigh != null && (
-                  <span className="tabular-nums">
-                    H <span style={{ color: 'var(--text-primary)' }}>{chartHigh.toFixed(2)}</span>
-                  </span>
-                )}
-                {chartLow != null && (
-                  <span className="tabular-nums">
-                    L <span style={{ color: 'var(--text-primary)' }}>{chartLow.toFixed(2)}</span>
-                  </span>
-                )}
-              </div>
-              <span
-                className="dtc-chip"
-                style={{
-                  background: phase === 'drawing' ? 'var(--accent-soft)' : 'var(--green-soft)',
-                  color: phase === 'drawing' ? 'var(--accent)' : 'var(--green)',
-                  borderColor: phase === 'drawing' ? 'rgba(91,141,239,0.2)' : 'rgba(34,197,94,0.15)',
-                }}
-              >
-                {phase === 'setup' ? 'Preview' : phase === 'drawing' ? 'Drawing' : 'Reveal'}
-              </span>
-              <button
-                type="button"
-                onClick={handleToggleAdvancedTools}
-                className="dtc-chip"
-                style={{
-                  cursor: phase === 'submitted' ? 'default' : 'pointer',
-                  opacity: phase === 'submitted' ? 0.5 : 1,
-                }}
-                disabled={phase === 'submitted'}
-              >
-                {showAdvancedTools ? `${activeToolLabel}` : 'TA Tools'}
-              </button>
-            </div>
+        {/* Price readout */}
+        {lastChartCandle && !loading && phase !== 'submitted' && (
+          <div className="absolute top-3 left-4 z-10 pointer-events-none">
+            <span className="text-xl font-semibold dtc-data" style={{ color: 'var(--text-primary)' }}>
+              {lastChartCandle.close.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </span>
           </div>
         )}
 
@@ -981,7 +608,6 @@ export function Game() {
             timeframe={timeframe}
             drawingEnabled={drawingEnabled && !taToolActive}
             drawnPath={drawnPath}
-            resampledPath={phase === 'submitted' ? resampledPath : null}
             onDrawComplete={handleDrawComplete}
             actualFuture={visibleFuture}
             showFreezeLine={phase === 'drawing' || phase === 'submitted'}
@@ -989,7 +615,7 @@ export function Game() {
           />
         )}
 
-        {/* TA Drawing Overlay */}
+        {/* Technical-analysis overlay: only intercepts pointers when a tool is armed */}
         {chartData.length > 0 && (
           <TAOverlay
             key={taKey}
@@ -1002,297 +628,155 @@ export function Game() {
                 ? lastChartCandle.time + TIMEFRAMES[timeframe].minutes * 60
                 : null
             }
-            onToolDone={() => {
-              setTaDrawingCount((count) => count + 1);
-            }}
+            onToolDone={() => setTaDrawingCount((count) => count + 1)}
           />
         )}
 
-        {/* TA Toolbar - advanced tools are opt-in for first-time users */}
-        {phase === 'drawing' && chartData.length > 0 && !loading && showAdvancedTools && (
+        {/* Floating tool rail on the left edge of the chart, collapsed by default */}
+        {phase === 'drawing' && !loading && chartData.length > 0 && (
           <div className="hidden sm:block">
-            <TAToolbar
-              activeTool={activeTATool}
-              onSelectTool={handleSelectTATool}
-              onClearAll={handleClearTA}
-              hasDrawings={taDrawingCount > 0}
-            />
-          </div>
-        )}
-
-        {phase === 'drawing' && !loading && (
-          <div className="absolute right-3 bottom-14 z-20 hidden xl:block max-w-[280px]">
-            {drawGuideCollapsed ? (
+            {showTools ? (
+              <div className="animate-fade-in">
+                <TAToolbar
+                  activeTool={activeTATool}
+                  onSelectTool={handleSelectTATool}
+                  onClearAll={handleClearTA}
+                  hasDrawings={taDrawingCount > 0}
+                  onCollapse={handleToggleTools}
+                />
+              </div>
+            ) : (
               <button
-                type="button"
-                onClick={() => setDrawGuideCollapsed(false)}
-                className="dtc-panel px-2.5 py-1.5 text-[11px]"
+                onClick={handleToggleTools}
+                title="Drawing tools"
+                aria-label="Show drawing tools"
+                className="absolute left-3 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center transition-colors"
                 style={{
-                  background: 'rgba(17, 17, 19, 0.9)',
-                  backdropFilter: 'blur(8px)',
+                  width: '34px',
+                  height: '34px',
+                  background: 'var(--bg-panel)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-lg)',
+                  backdropFilter: 'blur(12px)',
+                  boxShadow: 'var(--shadow-md)',
                   color: 'var(--text-muted)',
                 }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
               >
-                Guide
+                <svg viewBox="0 0 18 18" width="17" height="17" fill="none">
+                  <circle cx="4.5" cy="13.5" r="1.8" stroke="currentColor" strokeWidth="1.4" />
+                  <circle cx="13.5" cy="4.5" r="1.8" stroke="currentColor" strokeWidth="1.4" />
+                  <path d="M6 12 12 6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                </svg>
               </button>
-            ) : (
-              <div
-                className="dtc-panel p-3"
-                style={{
-                  background: 'rgba(17, 17, 19, 0.95)',
-                  backdropFilter: 'blur(8px)',
-                }}
-              >
-                <div className="flex items-center justify-between gap-3 mb-2">
-                  <div className="dtc-eyebrow">Guide</div>
-                  <button
-                    type="button"
-                    onClick={() => setDrawGuideCollapsed(true)}
-                    className="text-[10px] dtc-data"
-                    style={{ color: 'var(--text-muted)' }}
-                  >
-                    Hide
-                  </button>
-                </div>
-                <div className="space-y-1.5 text-[11px]" style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                  <div>Draw in the future zone (right of anchor).</div>
-                  <div>Normalized to {drawingRules.controlPoints} control points on submit.</div>
-                </div>
-                <div className="mt-2 pt-2 flex flex-wrap gap-2 text-[10px]" style={{ borderTop: '1px solid var(--border)' }}>
-                  <span className="dtc-kbd">Enter</span>
-                  <span style={{ color: 'var(--text-muted)' }}>submit</span>
-                  <span className="dtc-kbd">Esc</span>
-                  <span style={{ color: 'var(--text-muted)' }}>clear</span>
-                </div>
-              </div>
             )}
           </div>
         )}
 
-        {/* Score breakdown overlay */}
-        {phase === 'submitted' && score && !isReplaying && !scoreHidden && (
-          <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-30 flex flex-col sm:flex-row gap-2 sm:gap-3 animate-slide-in max-h-[calc(100%-16px)] overflow-y-auto">
-            {/* Left column: Score Breakdown + Payout Curve stacked */}
-            <div className="flex flex-col gap-2 sm:gap-3">
-              <div
-                className="dtc-panel p-3 sm:p-4 relative"
-                style={{
-                  background: 'rgba(17, 17, 19, 0.96)',
-                  backdropFilter: 'blur(8px)',
-                }}
-              >
-                <button
-                  onClick={() => setScoreHidden(true)}
-                  className="absolute top-2 right-2 w-5 h-5 flex items-center justify-center"
-                  style={{ color: 'var(--text-secondary)', background: 'transparent', fontSize: '14px', lineHeight: 1 }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'transparent'; }}
-                  aria-label="Hide score"
+        {/* Result card */}
+        {phase === 'submitted' && score && !isReplaying && (
+          <div
+            className="dtc-panel absolute top-3 left-4 z-30 p-5 animate-slide-in"
+            style={{
+              width: '284px',
+              background: 'var(--bg-panel)',
+              backdropFilter: 'blur(10px)',
+              boxShadow: 'var(--shadow-md)',
+            }}
+          >
+            {scoreV3 && payoutInfoV3 ? (
+              <>
+                <div className="dtc-eyebrow mb-2">Round score</div>
+                <div
+                  className="text-[42px] leading-none font-semibold dtc-data animate-count-up"
+                  style={{
+                    color: scoreV3.percentile >= STANDARD_PAYOUT_V3.breakEvenPercentile
+                      ? 'var(--green)'
+                      : scoreV3.percentile >= 0.5
+                        ? 'var(--accent)'
+                        : 'var(--red)',
+                  }}
                 >
-                  ×
-                </button>
-                <div className="dtc-eyebrow mb-1 sm:mb-2">Score Breakdown</div>
-                <div className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-3 dtc-data animate-count-up" style={{
-                  color: score.total >= 60 ? 'var(--green)' : score.total >= 40 ? 'var(--accent)' : 'var(--red)',
-                }}>
-                  {score.total.toFixed(1)}
-                  <span className="text-xs sm:text-sm font-normal" style={{ color: 'var(--text-secondary)' }}> / 100</span>
+                  {(100 * scoreV3.percentile).toFixed(1)}
+                  <span className="text-sm font-normal" style={{ color: 'var(--text-secondary)' }}> / 100</span>
                 </div>
-                <div className="space-y-1 sm:space-y-1.5 text-xs">
-                  <ScoreRow label="Direction" value={score.direction} max={40} />
-                  <ScoreRow label="Magnitude" value={score.magnitude} max={30} />
-                  <ScoreRow label="Turning Pts" value={score.turningPoints} max={20} />
-                  <ScoreRow label="Volatility" value={score.volatility} max={10} />
+
+                <div className="space-y-1.5 text-xs mt-4">
+                  <ScoreRow label="Shape & Timing" value={scoreV3.similarity.shape} max={50} />
+                  <ScoreRow label="Direction" value={scoreV3.similarity.direction} max={30} />
+                  <ScoreRow label="Level" value={scoreV3.similarity.level} max={20} />
                 </div>
-                {payoutInfo && (
-                  <div className="mt-2 sm:mt-3 pt-2 sm:pt-3" style={{ borderTop: '1px solid var(--border)' }}>
-                    <div className="flex justify-between gap-6 sm:gap-8 text-xs">
-                      <span style={{ color: 'var(--text-secondary)' }}>Multiplier</span>
-                      <span className="font-semibold dtc-data" style={{ color: payoutInfo.multiplier >= 1 ? 'var(--green)' : 'var(--red)' }}>
-                        {payoutInfo.multiplier.toFixed(2)}x
-                      </span>
-                    </div>
-                    <div className="flex justify-between gap-6 sm:gap-8 text-xs mt-1">
-                      <span style={{ color: 'var(--text-secondary)' }}>${stake} Stake</span>
-                      <span className="font-semibold dtc-data" style={{ color: payoutInfo.profit >= 0 ? 'var(--green)' : 'var(--red)' }}>
-                        {payoutInfo.profit >= 0 ? '+' : ''}{payoutInfo.profit.toFixed(2)}
-                      </span>
+
+                <div className="mt-3 pt-3 flex items-end justify-between gap-3" style={{ borderTop: '1px solid var(--border)' }}>
+                  <div>
+                    <div className="dtc-eyebrow mb-1">Payout</div>
+                    <div
+                      className="text-[28px] leading-none font-semibold dtc-data animate-count-up"
+                      style={{ color: payoutInfoV3.multiplier >= 1 ? 'var(--green)' : 'var(--red)' }}
+                    >
+                      {payoutInfoV3.multiplier.toFixed(2)}x
                     </div>
                   </div>
-                )}
-                <div className="hidden sm:flex mt-3 pt-2 flex-wrap items-center gap-3 text-xs" style={{ borderTop: '1px solid var(--border)' }}>
-                  <span className="flex items-center gap-1.5">
-                    <span className="inline-block w-3 h-0.5 rounded" style={{ background: 'var(--accent)' }} />
-                    <span style={{ color: 'var(--text-secondary)' }}>Drawing</span>
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="inline-block w-3 h-0.5 rounded" style={{ background: 'rgba(212, 168, 92, 0.36)', borderBottom: '1px dotted rgba(212, 168, 92, 0.56)' }} />
-                    <span style={{ color: 'var(--text-secondary)' }}>Resampled</span>
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="inline-block w-3 h-0.5 rounded" style={{ background: 'var(--teal)' }} />
-                    <span style={{ color: 'var(--text-secondary)' }}>Actual</span>
-                  </span>
+                  <div className="text-right">
+                    <div
+                      className="text-base font-semibold dtc-data"
+                      style={{ color: payoutInfoV3.profit >= 0 ? 'var(--green)' : 'var(--red)' }}
+                    >
+                      {payoutInfoV3.profit >= 0 ? '+' : '−'}${Math.abs(payoutInfoV3.profit).toFixed(2)}
+                    </div>
+                    <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                      on ${stake}
+                    </div>
+                  </div>
                 </div>
+
+                <div className="mt-3 pt-3 flex flex-wrap items-center gap-3 text-[11px]" style={{ borderTop: '1px solid var(--border)' }}>
+                  {/* matches ACCENT_STRONG in DrawingChart — the drawn path */}
+                  <Legend color="#f5b342" label="You" />
+                  <Legend color="var(--teal)" label="Actual" />
+                </div>
+              </>
+            ) : (
+              <div className="text-4xl font-bold dtc-data animate-count-up" style={{
+                color: score.total >= 60 ? 'var(--green)' : score.total >= 40 ? 'var(--accent)' : 'var(--red)',
+              }}>
+                {score.total.toFixed(1)}
+                <span className="text-sm font-normal" style={{ color: 'var(--text-secondary)' }}> / 100</span>
               </div>
-              <div className="hidden sm:block">
-                <PayoutCurve currentScore={score.total} />
-              </div>
-            </div>
-            {showFeedbackModal && supabaseRoundId && score && payoutInfo && (
-              <FeedbackModal
-                roundId={supabaseRoundId}
-                score={score}
-                multiplier={payoutInfo.multiplier}
-                inline
-                onClose={() => setShowFeedbackModal(false)}
-                onSubmitted={() => setShowFeedbackModal(false)}
-              />
             )}
           </div>
-        )}
-        {phase === 'submitted' && score && !isReplaying && scoreHidden && (
-          <button
-            onClick={() => setScoreHidden(false)}
-            className="absolute top-4 left-4 z-30 px-3 py-1.5 text-xs animate-fade-in dtc-button-secondary"
-            style={{
-              color: 'var(--text-secondary)',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
-          >
-            Show Score
-          </button>
         )}
       </div>
 
       {/* Bottom bar */}
       <footer
-        className="flex items-center justify-between gap-3 px-3 py-1.5 min-h-11 shrink-0 overflow-hidden"
+        className="flex items-center justify-between gap-3 px-4 py-2 h-14 shrink-0"
         style={{
           borderTop: '1px solid var(--border)',
           background: 'var(--bg-secondary)',
         }}
       >
-        {/* min-w-0 + flex-1 lets this group shrink and scroll instead of pushing
-            the score readout out of the footer on narrow viewports. */}
-        <div className="flex items-center gap-2 min-w-0 flex-1 overflow-x-auto">
+        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+          {phase === 'drawing' && !hasDrawing && 'Draw your path inside the highlighted zone'}
+        </span>
+
+        <div className="flex items-center gap-2 shrink-0">
           {phase === 'drawing' && (
             <>
-              <span className="hidden xl:inline text-xs dtc-data whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>
-                {drawingRules.controlPoints} control pts • {Math.round(drawingRules.minSpacingSeconds / 60)}m min spacing{roundCode != null ? ` • round ${roundCode}` : ''}
-              </span>
               {hasDrawing && (
                 <button
                   onClick={handleClearDrawing}
                   className={FOOTER_ACTION_BUTTON_CLASS}
                   style={{ color: 'var(--text-secondary)' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
                 >
                   Clear
                 </button>
               )}
               <button
-                onClick={handleReset}
-                className={FOOTER_ACTION_BUTTON_CLASS}
-                style={{ color: 'var(--text-secondary)' }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
-              >
-                New Round
-              </button>
-              {roundSeed != null && (
-                <button
-                  onClick={handleCopyRoundLink}
-                  className={FOOTER_ACTION_BUTTON_CLASS}
-                  style={{ color: linkStatus === 'copied' ? 'var(--green)' : linkStatus === 'error' ? 'var(--red)' : 'var(--text-secondary)' }}
-                >
-                  {linkStatus === 'copied' ? 'Link Copied' : linkStatus === 'error' ? 'Copy Failed' : 'Copy Link'}
-                </button>
-              )}
-            </>
-          )}
-          {phase === 'submitted' && (
-            <>
-              <button
-                onClick={handleReset}
-                className={FOOTER_PRIMARY_BUTTON_CLASS}
-              >
-                New Round
-              </button>
-              {roundSeed != null && (
-                <button
-                  onClick={handleCopyRoundLink}
-                  className={FOOTER_ACTION_BUTTON_CLASS}
-                  style={{ color: linkStatus === 'copied' ? 'var(--green)' : linkStatus === 'error' ? 'var(--red)' : 'var(--text-secondary)' }}
-                >
-                  {linkStatus === 'copied' ? 'Link Copied' : linkStatus === 'error' ? 'Copy Failed' : 'Copy Link'}
-                </button>
-              )}
-              {/* Four fixed-width buttons plus the score readout overflow a phone
-                  footer. These two are secondary — the journal is in the nav menu —
-                  so they only appear once there is room. `contents` on the wrapper
-                  keeps them as direct flex children at sm and up. */}
-              <span className="hidden sm:contents">
-                <button
-                  onClick={handleExportRound}
-                  className={FOOTER_ACTION_BUTTON_CLASS}
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  Export JSON
-                </button>
-                <Link
-                  to="/leaderboard"
-                  className={`${FOOTER_ACTION_BUTTON_CLASS} no-underline`}
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  View Journal
-                </Link>
-              </span>
-            </>
-          )}
-        </div>
-
-        {/* shrink-0 so this sizes to its content instead of splitting the footer
-            50/50 with the button group, which truncated the buttons on phones.
-            Unbounded text inside is individually clamped. */}
-        <div className="flex items-center justify-end gap-3 shrink-0">
-          {phase === 'setup' && (
-            <span className="text-xs dtc-data truncate max-w-[52vw] sm:max-w-none" style={{ color: 'var(--text-secondary)' }}>
-              {isLive ? 'Showing live BTC data' : 'Showing historical BTC data'} · {TIMEFRAMES[timeframe].interval} candles
-            </span>
-          )}
-          {phase === 'drawing' && (
-            <>
-              <div className="hidden xl:flex items-center gap-3 text-xs min-w-0" style={{ color: 'var(--text-secondary)' }}>
-                <span className="truncate max-w-[720px]">
-                  {activeTATool !== 'none'
-                    ? `${activeToolLabel} is active. Switch back to Cursor to continue drawing.`
-                    : hasDrawing
-                      ? `Extend from the live end handle or click ahead to continue. Drag the left chart area for more history and use the axes to scale time or price.${showAdvancedTools ? '' : ' Advanced tools stay hidden until you turn them on.'}`
-                      : 'Draw inside the future zone. Drag the left chart area to pan history and use the axes to scale time or price.'}
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Kbd>Enter</Kbd>
-                  <span>submit</span>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Kbd>Esc</Kbd>
-                  <span>{activeTATool !== 'none' ? 'exit tool' : hasDrawing ? 'clear' : 'reset'}</span>
-                </span>
-              </div>
-              <span className="sm:hidden text-xs truncate max-w-[42vw]" style={{ color: 'var(--text-secondary)' }}>
-                {activeTATool !== 'none'
-                  ? 'Switch back to Cursor to keep drawing'
-                  : hasDrawing
-                    ? 'Drag the end handle to extend'
-                    : 'Draw in the future zone'}
-              </span>
-              <button
                 onClick={handleSubmit}
                 disabled={!hasDrawing}
-                className={`${hasDrawing ? FOOTER_PRIMARY_BUTTON_CLASS : FOOTER_ACTION_BUTTON_CLASS}`}
+                className={hasDrawing ? FOOTER_PRIMARY_BUTTON_CLASS : FOOTER_ACTION_BUTTON_CLASS}
                 style={{
                   color: hasDrawing ? '#120d09' : 'var(--text-secondary)',
                   cursor: hasDrawing ? 'pointer' : 'default',
@@ -1303,21 +787,13 @@ export function Game() {
               </button>
             </>
           )}
-          {phase === 'submitted' && score && (
-            <div className="flex items-center gap-3 shrink-0 pl-2">
-              <span className="hidden sm:inline text-xs dtc-data" style={{ color: 'var(--text-secondary)' }}>
-                Local log: {roundLogCount} rounds
-              </span>
-              <span className="text-sm font-bold dtc-data" style={{
-                color: score.total >= 60 ? 'var(--green)' : score.total >= 40 ? 'var(--accent)' : 'var(--red)',
-              }}>
-                Score: {score.total.toFixed(1)}
-              </span>
-            </div>
+          {phase === 'submitted' && (
+            <button onClick={handleReset} className={FOOTER_PRIMARY_BUTTON_CLASS}>
+              New Round
+            </button>
           )}
         </div>
       </footer>
-
     </div>
   );
 }
@@ -1342,56 +818,11 @@ function ScoreRow({ label, value, max }: { label: string; value: number; max: nu
   );
 }
 
-function MetricTile({ label, value }: { label: string; value: string }) {
+function Legend({ color, label }: { color: string; label: string }) {
   return (
-    <div className="dtc-panel-subtle p-3">
-      <div className="dtc-eyebrow mb-1">{label}</div>
-      <div className="dtc-data" style={{ color: 'var(--text-primary)' }}>
-        {value}
-      </div>
-    </div>
+    <span className="flex items-center gap-1.5">
+      <span className="inline-block w-3 h-0.5 rounded" style={{ background: color }} />
+      <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
+    </span>
   );
-}
-
-function PhaseStep({
-  index,
-  title,
-  active,
-  complete,
-}: {
-  index: number;
-  title: string;
-  active: boolean;
-  complete: boolean;
-}) {
-  return (
-    <div
-      className="flex items-center gap-1.5 px-2 py-1 rounded"
-      style={{
-        background: active ? 'rgba(255,255,255,0.06)' : 'transparent',
-        border: `1px solid ${active ? 'var(--border-strong)' : 'transparent'}`,
-      }}
-    >
-      <span
-        className="dtc-data text-[10px]"
-        style={{
-          color: complete ? 'var(--green)' : active ? 'var(--accent)' : 'var(--text-muted)',
-        }}
-      >
-        {index}
-      </span>
-      <span
-        className="text-[11px]"
-        style={{
-          color: active ? 'var(--text-primary)' : complete ? 'var(--text-secondary)' : 'var(--text-muted)',
-        }}
-      >
-        {title}
-      </span>
-    </div>
-  );
-}
-
-function Kbd({ children }: { children: ReactNode }) {
-  return <span className="dtc-kbd">{children}</span>;
 }

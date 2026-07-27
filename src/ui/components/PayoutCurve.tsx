@@ -4,16 +4,20 @@ import { generatePayoutCurve, DEFAULT_PAYOUT_CONFIG, type PayoutConfig } from '.
 interface PayoutCurveProps {
   currentScore?: number;
   config?: PayoutConfig;
+  /** Pre-computed curve points (score 0-100 -> multiplier); overrides config */
+  points?: { score: number; multiplier: number }[];
+  /** Break-even position on the 0-100 score axis; overrides config */
+  breakEven?: number;
 }
 
 const WIDTH = 280;
 const HEIGHT = 160;
 const PAD = { top: 12, right: 16, bottom: 28, left: 40 };
 
-export function PayoutCurve({ currentScore, config = DEFAULT_PAYOUT_CONFIG }: PayoutCurveProps) {
-  const curve = useMemo(() => generatePayoutCurve(config), [config]);
-  const yMin = config.minMultiplier;
-  const yMax = config.maxMultiplier;
+export function PayoutCurve({ currentScore, config = DEFAULT_PAYOUT_CONFIG, points, breakEven }: PayoutCurveProps) {
+  const curve = useMemo(() => points ?? generatePayoutCurve(config), [points, config]);
+  const yMin = points ? Math.min(...points.map((p) => p.multiplier)) : config.minMultiplier;
+  const yMax = points ? Math.max(...points.map((p) => p.multiplier)) : config.maxMultiplier;
   const logMin = Math.log(yMin);
   const logMax = Math.log(yMax);
 
@@ -35,7 +39,8 @@ export function PayoutCurve({ currentScore, config = DEFAULT_PAYOUT_CONFIG }: Pa
     .join(' ');
 
   // Break-even line
-  const beX = xScale(config.breakEvenScore * 100);
+  const breakEvenScore100 = breakEven ?? config.breakEvenScore * 100;
+  const beX = xScale(breakEvenScore100);
   const beY = yScale(1);
   const yTicks = [0.3, 0.5, 1, 2, 5, 10, 20, 50].filter(
     (value) => value >= yMin && value <= yMax,
@@ -69,13 +74,13 @@ export function PayoutCurve({ currentScore, config = DEFAULT_PAYOUT_CONFIG }: Pa
             Payout Curve
           </div>
           <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-            Log scale from {config.minMultiplier.toFixed(1)}x to {config.maxMultiplier.toFixed(0)}x
+            Log scale from {yMin.toFixed(1)}x to {yMax.toFixed(0)}x
           </div>
         </div>
         <div className="dtc-chip">
           <span>Break-even</span>
           <span className="dtc-data" style={{ color: 'var(--accent)' }}>
-            {(config.breakEvenScore * 100).toFixed(0)}
+            {breakEvenScore100.toFixed(0)}
           </span>
         </div>
       </div>

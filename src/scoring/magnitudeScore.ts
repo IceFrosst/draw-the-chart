@@ -46,5 +46,5 @@ export function computeMagnitudeScore(
     config.magnitudeBiasWeight * normalizedBias +
     config.magnitudeTrackingWeight * normalizedRmse;
 
-  return 30 * Math.exp(-config.magnitudeLambda * penalty);
+  return 22 * Math.exp(-config.magnitudeLambda * penalty);
 }

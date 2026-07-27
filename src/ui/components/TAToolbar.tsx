@@ -6,6 +6,8 @@ interface TAToolbarProps {
   onSelectTool: (tool: TAToolType) => void;
   onClearAll: () => void;
   hasDrawings: boolean;
+  /** collapses the rail back to its floating launcher */
+  onCollapse: () => void;
 }
 
 const tools: Array<{
@@ -50,7 +52,7 @@ const tools: Array<{
   },
   {
     type: 'hline',
-    label: 'H-Line',
+    label: 'Level',
     title: 'Horizontal Line',
     icon: (
       <svg viewBox="0 0 18 18" width="16" height="16" fill="none">
@@ -76,16 +78,18 @@ export function TAToolbar({
   onSelectTool,
   onClearAll,
   hasDrawings,
+  onCollapse,
 }: TAToolbarProps) {
   return (
     <div
-      className="absolute left-2 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-1.5 px-1.5 py-2"
+      className="absolute left-3 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-1 px-1.5 py-2"
       style={{
-        width: '64px',
-        background: 'rgba(17, 17, 19, 0.95)',
+        width: '74px',
+        background: 'var(--bg-panel)',
         border: '1px solid var(--border)',
         backdropFilter: 'blur(12px)',
-        borderRadius: '8px',
+        borderRadius: 'var(--radius-lg)',
+        boxShadow: 'var(--shadow-md)',
       }}
     >
       {tools.map((tool) => {
@@ -96,15 +100,18 @@ export function TAToolbar({
             type="button"
             title={tool.title}
             onClick={() => onSelectTool(tool.type)}
-            className="flex flex-col items-center justify-center gap-0.5 rounded px-1 py-1.5 text-[9px] transition-all"
+            className="flex flex-col items-center justify-center gap-1 px-1 py-1.5 text-[9px] transition-all"
             style={{
-              background: active ? 'var(--accent)' : 'transparent',
-              border: active ? 'none' : '1px solid transparent',
-              color: active ? '#000' : 'var(--text-muted)',
+              background: active ? 'rgba(212, 168, 92, 0.16)' : 'transparent',
+              border: `1px solid ${active ? 'rgba(212, 168, 92, 0.32)' : 'transparent'}`,
+              borderRadius: 'var(--radius)',
+              color: active ? 'var(--accent)' : 'var(--text-muted)',
+              fontFamily: "'JetBrains Mono', monospace",
+              letterSpacing: '0.04em',
             }}
           >
             <span className="flex h-4 items-center justify-center">{tool.icon}</span>
-            <span className="leading-none">{tool.label}</span>
+            <span className="leading-none whitespace-nowrap">{tool.label}</span>
           </button>
         );
       })}
@@ -113,16 +120,33 @@ export function TAToolbar({
         type="button"
         onClick={onClearAll}
         disabled={!hasDrawings}
-        className="rounded px-1 py-1.5 text-[9px] transition-all"
+        className="px-1 py-1.5 text-[9px] transition-all"
         style={{
           background: hasDrawings ? 'var(--red-soft)' : 'transparent',
-          border: hasDrawings ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid transparent',
+          border: `1px solid ${hasDrawings ? 'rgba(217, 95, 90, 0.24)' : 'transparent'}`,
+          borderRadius: 'var(--radius)',
           color: hasDrawings ? 'var(--red)' : 'var(--text-muted)',
           opacity: hasDrawings ? 1 : 0.4,
           cursor: hasDrawings ? 'pointer' : 'default',
+          fontFamily: "'JetBrains Mono', monospace",
+          letterSpacing: '0.04em',
         }}
       >
         Clear
+      </button>
+      <button
+        type="button"
+        onClick={onCollapse}
+        title="Hide tools"
+        aria-label="Hide drawing tools"
+        className="flex items-center justify-center py-1 transition-colors"
+        style={{ color: 'var(--text-muted)', background: 'transparent', border: 'none' }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+      >
+        <svg viewBox="0 0 18 18" width="14" height="14" fill="none">
+          <path d="M11 4 6 9l5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </button>
     </div>
   );

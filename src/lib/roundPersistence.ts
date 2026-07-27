@@ -58,84 +58,101 @@ export async function getOrCreateSessionUser(): Promise<string | null> {
   const existing = localStorage.getItem(SESSION_USER_KEY);
   if (existing) return existing;
 
-  const { data, error } = await supabase
-    .from('users')
-    .insert({ display_name: `Tester ${Math.random().toString(36).slice(2, 6)}` })
-    .select('id')
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .insert({ display_name: `Tester ${Math.random().toString(36).slice(2, 6)}` })
+      .select('id')
+      .single();
 
-  if (error || !data) {
-    console.warn('[DTC] Failed to create session user:', error?.message);
+    if (error || !data) {
+      console.warn('[DTC] Failed to create session user:', error?.message);
+      return null;
+    }
+
+    localStorage.setItem(SESSION_USER_KEY, data.id);
+    return data.id;
+  } catch (err) {
+    // network-level failure (e.g. paused/unreachable Supabase project) —
+    // persistence is best-effort and must never affect gameplay
+    console.warn('[DTC] Session user unavailable:', err);
     return null;
   }
-
-  localStorage.setItem(SESSION_USER_KEY, data.id);
-  return data.id;
 }
 
 export async function persistRound(data: RoundInsertData): Promise<string | null> {
   if (!isSupabaseConfigured() || !supabase) return null;
 
-  const userId = await getOrCreateSessionUser();
-  const metrics = computeMarketMetrics(data.actualPrices);
+  try {
+    const userId = await getOrCreateSessionUser();
+    const metrics = computeMarketMetrics(data.actualPrices);
 
-  const { data: row, error } = await supabase
-    .from('rounds')
-    .insert({
-      user_id: userId,
-      seed: data.seed,
-      round_code: data.roundCode,
-      timeframe: data.timeframe,
-      instrument: 'BTC/USDT',
-      stake: data.stake,
-      predicted_path: data.predictedPrices,
-      actual_path: data.actualPrices,
-      score_direction: data.score.direction,
-      score_magnitude: data.score.magnitude,
-      score_turning_points: data.score.turningPoints,
-      score_volatility: data.score.volatility,
-      score_total: data.score.total,
-      payout_multiplier: data.payoutMultiplier,
-      payout_amount: data.payoutAmount,
-      payout_profit: data.payoutProfit,
-      realized_vol: metrics.realizedVol,
-      trend_direction: metrics.trendDirection,
-      max_step_move: metrics.maxStepMove,
-      drawing_point_count: data.drawingPointCount,
-      drawing_duration_seconds: data.drawingDurationSeconds,
-    })
-    .select('id')
-    .single();
+    const { data: row, error } = await supabase
+      .from('rounds')
+      .insert({
+        user_id: userId,
+        seed: data.seed,
+        round_code: data.roundCode,
+        timeframe: data.timeframe,
+        instrument: 'BTC/USDT',
+        stake: data.stake,
+        predicted_path: data.predictedPrices,
+        actual_path: data.actualPrices,
+        score_direction: data.score.direction,
+        score_magnitude: data.score.magnitude,
+        score_turning_points: data.score.turningPoints,
+        score_volatility: data.score.volatility,
+        score_total: data.score.total,
+        payout_multiplier: data.payoutMultiplier,
+        payout_amount: data.payoutAmount,
+        payout_profit: data.payoutProfit,
+        realized_vol: metrics.realizedVol,
+        trend_direction: metrics.trendDirection,
+        max_step_move: metrics.maxStepMove,
+        drawing_point_count: data.drawingPointCount,
+        drawing_duration_seconds: data.drawingDurationSeconds,
+      })
+      .select('id')
+      .single();
 
-  if (error || !row) {
-    console.warn('[DTC] Failed to persist round:', error?.message);
+    if (error || !row) {
+      console.warn('[DTC] Failed to persist round:', error?.message);
+      return null;
+    }
+
+    return row.id;
+  } catch (err) {
+    console.warn('[DTC] Round persistence unavailable:', err);
     return null;
   }
-
-  return row.id;
 }
 
 export async function persistFeedback(data: FeedbackInsertData): Promise<boolean> {
   if (!isSupabaseConfigured() || !supabase) return false;
 
-  const userId = await getOrCreateSessionUser();
+  try {
+    const userId = await getOrCreateSessionUser();
 
-  const { error } = await supabase.from('round_feedback').insert({
-    round_id: data.roundId,
-    user_id: userId,
-    fairness_vote: data.fairnessVote,
-    self_assessed_score: data.selfAssessedScore,
-    confidence: data.confidence,
-    wrong_components: data.wrongComponents,
-    difficulty_perception: data.difficultyPerception,
-    would_bet_real_money: data.wouldBetRealMoney,
-    comment: data.comment,
-  });
+    const { error } = await supabase.from('round_feedback').insert({
+      round_id: data.roundId,
+      user_id: userId,
+      fairness_vote: data.fairnessVote,
+      self_assessed_score: data.selfAssessedScore,
+      confidence: data.confidence,
+      wrong_components: data.wrongComponents,
+      difficulty_perception: data.difficultyPerception,
+      would_bet_real_money: data.wouldBetRealMoney,
+      comment: data.comment,
+    });
 
-  if (error) {
-    console.warn('[DTC] Failed to persist feedback:', error.message);
+    if (error) {
+      console.warn('[DTC] Failed to persist feedback:', error.message);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('[DTC] Feedback persistence unavailable:', err);
     return false;
   }
-
-  return true;
 }

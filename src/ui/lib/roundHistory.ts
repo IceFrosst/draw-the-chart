@@ -7,6 +7,15 @@ export interface RoundPayoutSummary {
   profit: number;
 }
 
+/** v3 field-relative result; absent on rounds settled before the v3 engine. */
+export interface RoundFieldScoreSummary {
+  percentile: number;
+  beaten: number;
+  fieldSize: number;
+  multiplier: number;
+  profit: number;
+}
+
 export interface RoundHistoryEntry {
   id: string;
   seed: number;
@@ -17,6 +26,7 @@ export interface RoundHistoryEntry {
   settledAt: string;
   score: ScoreBreakdown;
   payout: RoundPayoutSummary;
+  fieldScore?: RoundFieldScoreSummary;
   historyPoints: number;
   futurePoints: number;
   sharePath: string;
@@ -38,6 +48,7 @@ interface CreateRoundHistoryEntryInput {
   stake: number;
   score: ScoreBreakdown;
   payout: RoundPayoutSummary;
+  fieldScore?: RoundFieldScoreSummary;
   historyPoints: number;
   futurePoints: number;
   settledAt?: string;
@@ -79,6 +90,7 @@ export function createRoundHistoryEntry({
   stake,
   score,
   payout,
+  fieldScore,
   historyPoints,
   futurePoints,
   settledAt = new Date().toISOString(),
@@ -93,6 +105,7 @@ export function createRoundHistoryEntry({
     settledAt,
     score,
     payout,
+    fieldScore,
     historyPoints,
     futurePoints,
     sharePath: `/play?tf=${timeframe}&seed=${seed}`,
@@ -111,6 +124,29 @@ export function mergeRoundHistory(
     .slice(0, MAX_ENTRIES);
 }
 
+/** Effective (v3-preferred) values for one entry; falls back to legacy fields. */
+export function effectiveRoundValues(entry: RoundHistoryEntry): {
+  score: number;
+  multiplier: number;
+  profit: number;
+  isFieldScore: boolean;
+} {
+  if (entry.fieldScore) {
+    return {
+      score: 100 * entry.fieldScore.percentile,
+      multiplier: entry.fieldScore.multiplier,
+      profit: entry.fieldScore.profit,
+      isFieldScore: true,
+    };
+  }
+  return {
+    score: entry.score.total,
+    multiplier: entry.payout.multiplier,
+    profit: entry.payout.profit,
+    isFieldScore: false,
+  };
+}
+
 export function computeRoundHistoryStats(
   entries: RoundHistoryEntry[],
 ): RoundHistoryStats {
@@ -125,16 +161,12 @@ export function computeRoundHistoryStats(
     };
   }
 
-  const totalScore = entries.reduce((sum, entry) => sum + entry.score.total, 0);
-  const totalMultiplier = entries.reduce(
-    (sum, entry) => sum + entry.payout.multiplier,
-    0,
-  );
-  const profitableRounds = entries.filter(
-    (entry) => entry.payout.multiplier >= 1,
-  ).length;
-  const bestScore = Math.max(...entries.map((entry) => entry.score.total));
-  const totalProfit = entries.reduce((sum, entry) => sum + entry.payout.profit, 0);
+  const values = entries.map(effectiveRoundValues);
+  const totalScore = values.reduce((sum, v) => sum + v.score, 0);
+  const totalMultiplier = values.reduce((sum, v) => sum + v.multiplier, 0);
+  const profitableRounds = values.filter((v) => v.multiplier >= 1).length;
+  const bestScore = Math.max(...values.map((v) => v.score));
+  const totalProfit = values.reduce((sum, v) => sum + v.profit, 0);
 
   return {
     rounds: entries.length,

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#09090b" />
-    <meta name="description" content="Draw The Chart is a prediction market where you bet on the shape of a price path instead of a yes/no outcome. Draw what BTC does next and get paid on how close you were." />
+    <meta name="description" content="Draw The Chart is a BTC prediction game where you draw the future price path, get scored in log-return space, and settle on a published payout curve." />
     <link rel="canonical" href="https://drawthechart.xyz/" />
     <meta property="og:title" content="Draw The Chart — bet on the shape of a price path" />
     <meta property="og:description" content="Draw what BTC does next. A deterministic engine scores your drawing against the real path and pays on a published curve." />
@@ -19,6 +19,12 @@
     <meta name="twitter:title" content="Draw The Chart — bet on the shape of a price path" />
     <meta name="twitter:description" content="Draw what BTC does next. A deterministic engine scores your drawing against the real path and pays on a published curve." />
     <meta name="twitter:image" content="https://drawthechart.xyz/og-image.png" />
+
+    <!-- Preload the two faces used above the fold so self-hosted fonts do not
+         cost a round trip after the stylesheet parses. -->
+    <link rel="preload" href="/fonts/ibm-plex-sans-latin-var.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/newsreader-latin-var.woff2" as="font" type="font/woff2" crossorigin />
+
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2309090b'/><path d='M6 22 L12 16 L16 19 L22 10 L26 14' stroke='%23d4a85c' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>" />
     <title>Draw The Chart</title>
   </head>

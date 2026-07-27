@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import {
   computeRoundHistoryStats,
+  effectiveRoundValues,
   formatRoundAge,
   loadRoundHistory,
   type RoundHistoryEntry,
@@ -26,9 +27,11 @@ export function Leaderboard() {
 
   const sorted = useMemo(() => {
     return [...entries].sort((a, b) => {
-      if (sortBy === 'score') return b.score.total - a.score.total;
-      if (sortBy === 'multiplier') return b.payout.multiplier - a.payout.multiplier;
-      return b.payout.payout - a.payout.payout;
+      const va = effectiveRoundValues(a);
+      const vb = effectiveRoundValues(b);
+      if (sortBy === 'score') return vb.score - va.score;
+      if (sortBy === 'multiplier') return vb.multiplier - va.multiplier;
+      return vb.profit + b.stake - (va.profit + a.stake);
     });
   }, [entries, sortBy]);
 
@@ -36,14 +39,15 @@ export function Leaderboard() {
 
   return (
     <div className="min-h-screen pt-12">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+      <div className="max-w-5xl mx-auto px-6 py-14">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-8">
           <div>
-            <h1 className="dtc-display text-2xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
+            <div className="dtc-eyebrow mb-3">Local history</div>
+            <h1 className="dtc-display text-3xl mb-2" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
               Journal
             </h1>
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              {entries.length} sandbox rounds saved locally.
+              {entries.length} sandbox rounds saved in this browser.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -70,40 +74,37 @@ export function Leaderboard() {
         </div>
 
         {entries.length === 0 ? (
-          <>
-            <div className="dtc-panel p-8 text-center mb-6">
-              <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                No rounds yet
-              </h2>
-              <p className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>
-                This journal tracks every sandbox round you play.
-              </p>
-              <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
-                Scores, multipliers, P&L, and performance trends — all saved locally.
-              </p>
-              <Link
-                to="/play"
-                className="inline-flex px-5 py-2.5 text-sm font-semibold no-underline dtc-button-primary"
-              >
-                Start Drawing
-              </Link>
-            </div>
-            <div
-              className="grid grid-cols-2 sm:grid-cols-5 gap-px rounded-lg overflow-hidden"
-              style={{ background: 'var(--border)', border: '1px solid var(--border)' }}
+          <div className="dtc-hairline-top py-16 text-center">
+            <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
+              No rounds yet
+            </h2>
+            <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
+              Every sandbox round you play is tracked here — scores, multipliers, P&L.
+            </p>
+            <Link
+              to="/play"
+              className="inline-flex px-6 py-3 text-sm font-semibold no-underline dtc-button-primary"
             >
-              <StatCell label="Rounds" value="0" />
-              <StatCell label="Avg Score" value="--" />
-              <StatCell label="Avg Mult" value="--" />
-              <StatCell label="Win Rate" value="--" />
-              <StatCell label="Net P&L" value="$0.00" />
-            </div>
-          </>
+              Start Drawing
+            </Link>
+          </div>
         ) : (
           <>
             <div
-              className="dtc-panel overflow-x-auto mb-6"
+              className="dtc-strip mb-10"
+              style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}
             >
+              <StatCell label="Rounds" value={String(stats.rounds)} />
+              <StatCell label="Avg Score" value={stats.avgScore.toFixed(1)} />
+              <StatCell label="Avg Mult" value={`${stats.avgMultiplier.toFixed(2)}x`} />
+              <StatCell label="Win Rate" value={`${stats.profitableRate.toFixed(0)}%`} />
+              <StatCell
+                label="Net P&L"
+                value={`${stats.totalProfit >= 0 ? '+' : ''}$${stats.totalProfit.toFixed(2)}`}
+                color={stats.totalProfit >= 0 ? 'var(--green)' : 'var(--red)'}
+              />
+            </div>
+            <div className="overflow-x-auto mb-6">
               <table className="w-full text-xs" style={{ borderCollapse: 'collapse', minWidth: '700px' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)' }}>
@@ -120,7 +121,8 @@ export function Leaderboard() {
                 </thead>
                 <tbody>
                   {sorted.map((entry, index) => {
-                    const profitable = entry.payout.multiplier >= 1;
+                    const v = effectiveRoundValues(entry);
+                    const profitable = v.multiplier >= 1;
                     return (
                       <tr
                         key={entry.id}
@@ -160,29 +162,32 @@ export function Leaderboard() {
                         </td>
                         <td className="px-3 py-2 text-right dtc-data font-medium" style={{
                           color:
-                            entry.score.total >= 70
+                            v.score >= 80
                               ? 'var(--green)'
-                              : entry.score.total >= 50
+                              : v.score >= 50
                                 ? 'var(--text-primary)'
                                 : 'var(--red)',
                         }}>
-                          {entry.score.total.toFixed(1)}
+                          {v.score.toFixed(1)}
+                          {!v.isFieldScore && (
+                            <span className="ml-1 text-[9px]" style={{ color: 'var(--text-muted)' }}>old</span>
+                          )}
                         </td>
                         <td className="px-3 py-2 text-right dtc-data" style={{
                           color: profitable ? 'var(--green)' : 'var(--red)',
                         }}>
-                          {entry.payout.multiplier.toFixed(2)}x
+                          {v.multiplier.toFixed(2)}x
                         </td>
                         <td className="px-3 py-2 text-right dtc-data" style={{
                           color: profitable ? 'var(--green)' : 'var(--text-secondary)',
                         }}>
-                          ${entry.payout.payout.toFixed(2)}
+                          ${(entry.stake + v.profit).toFixed(2)}
                         </td>
                         <td className="px-3 py-2 text-right dtc-data font-medium" style={{
-                          color: entry.payout.profit >= 0 ? 'var(--green)' : 'var(--red)',
+                          color: v.profit >= 0 ? 'var(--green)' : 'var(--red)',
                         }}>
-                          {entry.payout.profit >= 0 ? '+' : ''}
-                          ${entry.payout.profit.toFixed(2)}
+                          {v.profit >= 0 ? '+' : ''}
+                          ${v.profit.toFixed(2)}
                         </td>
                         <td className="px-3 py-2 text-right text-[11px]" style={{ color: 'var(--text-muted)' }}>
                           {formatRoundAge(entry.settledAt)}
@@ -194,20 +199,6 @@ export function Leaderboard() {
               </table>
             </div>
 
-            <div
-              className="grid grid-cols-2 sm:grid-cols-5 gap-px rounded-lg overflow-hidden"
-              style={{ background: 'var(--border)', border: '1px solid var(--border)' }}
-            >
-              <StatCell label="Rounds" value={String(stats.rounds)} />
-              <StatCell label="Avg Score" value={stats.avgScore.toFixed(1)} />
-              <StatCell label="Avg Mult" value={`${stats.avgMultiplier.toFixed(2)}x`} />
-              <StatCell label="Win Rate" value={`${stats.profitableRate.toFixed(0)}%`} />
-              <StatCell
-                label="Net P&L"
-                value={`${stats.totalProfit >= 0 ? '+' : ''}$${stats.totalProfit.toFixed(2)}`}
-                color={stats.totalProfit >= 0 ? 'var(--green)' : 'var(--red)'}
-              />
-            </div>
           </>
         )}
 
@@ -252,11 +243,11 @@ function StatCell({
   color?: string;
 }) {
   return (
-    <div className="p-4 text-center" style={{ background: 'var(--bg-secondary)' }}>
-      <div className="dtc-data text-lg font-semibold mb-0.5" style={{ color: color ?? 'var(--text-primary)' }}>
+    <div>
+      <div className="dtc-eyebrow mb-2">{label}</div>
+      <div className="dtc-data text-xl" style={{ color: color ?? 'var(--text-primary)' }}>
         {value}
       </div>
-      <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{label}</div>
     </div>
   );
 }

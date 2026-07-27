@@ -93,10 +93,10 @@ describe('resamplePath', () => {
 });
 
 describe('Direction Score', () => {
-  it('identical paths → 40 (perfect direction)', () => {
+  it('identical paths → 39 (perfect direction)', () => {
     const path = linearPath(0.05);
     const score = computeDirectionScore(path, path, DEFAULT_CONFIG);
-    expect(score).toBeCloseTo(40, 0);
+    expect(score).toBeCloseTo(39, 0);
   });
 
   it('inverted path → 0 (worst direction)', () => {
@@ -111,22 +111,22 @@ describe('Direction Score', () => {
     const trend = linearPath(0.1);
     const score = computeDirectionScore(flat, trend, DEFAULT_CONFIG);
     // Flat predicts no direction — gets only a minimal abstention credit.
-    expect(score).toBeCloseTo(2, 0);
+    expect(score).toBeCloseTo(3, 0);
   });
 
   it('same direction but different magnitudes → high score', () => {
     const small = linearPath(0.01);
     const big = linearPath(0.1);
     const score = computeDirectionScore(small, big, DEFAULT_CONFIG);
-    expect(score).toBeCloseTo(40, 0);
+    expect(score).toBeCloseTo(39, 0);
   });
 });
 
 describe('Magnitude Score', () => {
-  it('identical paths → 30 (perfect magnitude)', () => {
+  it('identical paths → 22 (perfect magnitude)', () => {
     const path = randomWalk(N, 0.002, 42);
     const score = computeMagnitudeScore(path, path, DEFAULT_CONFIG);
-    expect(score).toBeCloseTo(30, 0);
+    expect(score).toBeCloseTo(22, 0);
   });
 
   it('constant offset → moderate score (high bias, low tracking error)', () => {
@@ -165,28 +165,28 @@ describe('Turning Point Score', () => {
     const path = sinePath(0.05, 3);
     const inverted = path.map((v) => -v);
     const score = computeTurningPointScore(path, inverted, DEFAULT_CONFIG);
-    expect(score).toBeLessThan(10);
+    expect(score).toBeLessThan(17);
   });
 
   it('flat predicted vs sine actual → penalized for missed turns', () => {
     const flat = new Array(N).fill(0);
     const sine = sinePath(0.05, 3);
     const score = computeTurningPointScore(flat, sine, DEFAULT_CONFIG);
-    expect(score).toBeLessThan(15);
+    expect(score).toBeLessThan(26);
   });
 
-  it('both flat → full score (no turns to match)', () => {
+  it('both flat -> full score (no turns to match)', () => {
     const flat = new Array(N).fill(0);
     const score = computeTurningPointScore(flat, flat, DEFAULT_CONFIG);
-    expect(score).toBe(20);
+    expect(score).toBe(34);
   });
 });
 
 describe('Volatility Score', () => {
-  it('identical paths → 10 (perfect vol match)', () => {
+  it('identical paths → 5 (perfect vol match)', () => {
     const path = randomWalk(N, 0.002, 42);
     const score = computeVolatilityScore(path, path, DEFAULT_CONFIG);
-    expect(score).toBeCloseTo(10, 0);
+    expect(score).toBeCloseTo(5, 0);
   });
 
   it('very different volatilities → low score', () => {
@@ -213,10 +213,18 @@ describe('Combined Score', () => {
 
     const result = computeScore(prices, prices);
     expect(result.total).toBeGreaterThan(95);
-    expect(result.direction).toBeCloseTo(40, 0);
-    expect(result.magnitude).toBeCloseTo(30, 0);
-    expect(result.turningPoints).toBeGreaterThan(15);
-    expect(result.volatility).toBeCloseTo(10, 0);
+    expect(result.direction).toBeCloseTo(39, 0);
+    expect(result.magnitude).toBeCloseTo(22, 0);
+    expect(result.turningPoints).toBeGreaterThan(25);
+    expect(result.volatility).toBeCloseTo(5, 0);
+  });
+
+  it('identical flat price paths -> score 100', () => {
+    const prices = new Array(200).fill(50000);
+    const result = computeScore(prices, prices);
+
+    expect(result.total).toBeCloseTo(100, 5);
+    expect(result.turningPoints).toBeCloseTo(34, 5);
   });
 
   it('inverted path → very low score', () => {

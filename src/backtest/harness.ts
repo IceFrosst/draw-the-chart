@@ -102,6 +102,28 @@ export function computeStats(values: number[]): Stats {
 export function loadBacktestPriceData(
   dataPath: string = DEFAULT_DATA_PATH,
 ): number[][] {
+  // Try loading expanded chunked data first
+  const dataDir = path.dirname(dataPath);
+  const indexPath = path.join(dataDir, 'chunks_index.json');
+  if (fs.existsSync(indexPath)) {
+    const index = JSON.parse(fs.readFileSync(indexPath, 'utf-8')) as Array<{
+      year: number;
+      file: string;
+    }>;
+    let allCandles: number[][] = [];
+    for (const entry of index) {
+      const filePath = path.join(dataDir, entry.file);
+      if (fs.existsSync(filePath)) {
+        const chunk = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as number[][];
+        allCandles = allCandles.concat(chunk);
+      }
+    }
+    if (allCandles.length > 0) {
+      allCandles.sort((a, b) => a[0]! - b[0]!);
+      return allCandles;
+    }
+  }
+
   if (!fs.existsSync(dataPath)) {
     throw new Error(
       `Data file not found: ${dataPath}\nExpected a local BTC 1m candle file for sandbox backtesting.`,

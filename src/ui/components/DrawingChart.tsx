@@ -35,6 +35,10 @@ interface DrawingChartProps {
   actualFuture?: CandleData[];
   showFreezeLine: boolean;
   onChartReady?: (chart: IChartApi, series: ISeriesApi<SeriesType>) => void;
+  /** sampled zero-skill field forecasts, rendered as a faint swarm at reveal */
+  fieldSwarm?: DrawnPoint[][] | null;
+  /** the field forecast that ranked just above the player */
+  rivalPath?: DrawnPoint[] | null;
 }
 
 interface NumericRange {
@@ -89,12 +93,14 @@ const GRID_SOFT = 'rgba(255, 255, 255, 0.03)';
 const TEXT_COLOR = '#52525b';
 const TEXT_MUTED = 'rgba(161, 161, 170, 0.8)';
 const ACCENT = '#d4a85c';
-const ACCENT_GLOW = 'rgba(212, 168, 92, 0.18)';
-const ACCENT_STRONG = '#d4a85c';
+const ACCENT_GLOW = 'rgba(245, 179, 66, 0.20)';
+/** The player's path owns a brighter gold than the UI chrome, so it stays the
+ *  most luminous thing on the chart. Do not reuse this outside the drawing. */
+const ACCENT_STRONG = '#f5b342';
 const ACTUAL = '#67c1b4';
 const ACTUAL_GLOW = 'rgba(103, 193, 180, 0.15)';
-const UP_COLOR = '#22c55e';
-const DOWN_COLOR = '#ef4444';
+const UP_COLOR = '#3f8f6b';
+const DOWN_COLOR = '#b8544f';
 
 class ChartErrorBoundary extends Component<
   { children: ReactNode },
@@ -218,6 +224,8 @@ function DrawingChartInner({
   actualFuture,
   showFreezeLine,
   onChartReady,
+  fieldSwarm,
+  rivalPath,
 }: DrawingChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const paneElementRef = useRef<HTMLElement | null>(null);
@@ -623,14 +631,14 @@ function DrawingChartInner({
       crosshair: {
         mode: CrosshairMode.Normal,
         vertLine: {
-          color: 'rgba(137, 146, 132, 0.38)',
+          color: 'rgba(160, 160, 172, 0.34)',
           style: LineStyle.Dashed,
           width: 1,
           labelVisible: true,
           labelBackgroundColor: CHART_PANEL,
         },
         horzLine: {
-          color: 'rgba(137, 146, 132, 0.38)',
+          color: 'rgba(160, 160, 172, 0.34)',
           style: LineStyle.Dashed,
           width: 1,
           labelVisible: true,
@@ -638,13 +646,13 @@ function DrawingChartInner({
         },
       },
       timeScale: {
-        borderColor: '#2b342d',
+        borderColor: '#26262b',
         timeVisible: true,
         secondsVisible: false,
         borderVisible: true,
       },
       rightPriceScale: {
-        borderColor: '#2b342d',
+        borderColor: '#26262b',
         borderVisible: true,
         scaleMargins: { top: 0.04, bottom: 0.06 },
       },
@@ -1208,6 +1216,10 @@ function DrawingChartInner({
   const predictionPoints = projectFuturePath(displayPath);
   const resampledPoints = projectFuturePath(resampledPath);
   const actualPoints = projectActualFuture();
+  const swarmScreenPaths = (fieldSwarm ?? [])
+    .map((p) => projectFuturePath(p))
+    .filter((pts) => pts.length >= 2);
+  const rivalPoints = projectFuturePath(rivalPath);
   const pathEndPoint =
     predictionPoints.length > 0 ? predictionPoints[predictionPoints.length - 1]! : null;
 
@@ -1216,14 +1228,6 @@ function DrawingChartInner({
   const futureGradientX = paneMetrics ? paneMetrics.left + paneMetrics.freezeX : 0;
   const futureGradientY = paneMetrics ? paneMetrics.top : 0;
   const futureEndX = futureGradientX + futureWidth;
-  // On narrow viewports the future zone is too tight for both end labels, and
-  // "NOW" and "FINISH" render on top of each other. Below this width, drop
-  // FINISH and keep NOW, which is the one that orients the drawing.
-  const futureZoneFitsBothLabels = futureWidth >= 132;
-  const futureZoneFitsRoundEnd = futureWidth >= 190;
-  // "FUTURE ZONE" starts 56px in and runs ~90px, so it spills over the price axis
-  // in a narrower zone.
-  const futureZoneFitsHeader = futureWidth >= 150;
   const drawBandLeft =
     paneMetrics != null
       ? paneMetrics.left + Math.max(0, paneMetrics.freezeX - DRAW_START_LEFT_PAD)
@@ -1282,9 +1286,9 @@ function DrawingChartInner({
           <>
             <defs>
               <linearGradient id="future-zone-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="rgba(212, 168, 92, 0.16)" />
-                <stop offset="35%" stopColor="rgba(212, 168, 92, 0.08)" />
-                <stop offset="100%" stopColor="rgba(212, 168, 92, 0.02)" />
+                <stop offset="0%" stopColor="rgba(190, 196, 214, 0.11)" />
+                <stop offset="35%" stopColor="rgba(190, 196, 214, 0.058)" />
+                <stop offset="100%" stopColor="rgba(190, 196, 214, 0.02)" />
               </linearGradient>
               <clipPath id={PANE_CLIP_ID}>
                 <rect
@@ -1307,7 +1311,7 @@ function DrawingChartInner({
               x2={futureGradientX}
               y1={futureGradientY}
               y2={futureGradientY + paneMetrics.height}
-              stroke="rgba(137, 146, 132, 0.76)"
+              stroke="rgba(160, 160, 172, 0.62)"
               strokeDasharray="4 4"
             />
             <line
@@ -1318,42 +1322,6 @@ function DrawingChartInner({
               stroke="rgba(212, 168, 92, 0.5)"
               strokeDasharray="6 6"
             />
-            {futureZoneFitsHeader && (
-              <text
-                x={futureGradientX + Math.max(56, futureWidth * 0.14)}
-                y={futureGradientY + 16}
-                fill={TEXT_MUTED}
-                fontSize="10"
-                fontWeight="700"
-                letterSpacing="1.1"
-              >
-                FUTURE ZONE
-              </text>
-            )}
-            {futureZoneFitsRoundEnd && (
-              <rect
-                x={Math.max(futureGradientX + 18, futureEndX - 112)}
-                y={futureGradientY + 8}
-                width="104"
-                height="20"
-                rx="10"
-                fill="rgba(17, 17, 19, 0.94)"
-                stroke="rgba(212, 168, 92, 0.2)"
-              />
-            )}
-            {futureZoneFitsRoundEnd && (
-              <text
-                x={futureEndX - 68}
-                y={futureGradientY + 22}
-                textAnchor="middle"
-                fill={ACCENT_STRONG}
-                fontSize="9.5"
-                fontWeight="700"
-                letterSpacing="0.9"
-              >
-                ROUND END
-              </text>
-            )}
             <text
               x={futureGradientX}
               y={futureGradientY + paneMetrics.height - 10}
@@ -1365,19 +1333,17 @@ function DrawingChartInner({
             >
               NOW
             </text>
-            {futureZoneFitsBothLabels && (
-              <text
-                x={futureEndX - 12}
-                y={futureGradientY + paneMetrics.height - 10}
-                textAnchor="end"
-                fill={ACCENT_STRONG}
-                fontSize="10"
-                fontWeight="700"
-                letterSpacing="1"
-              >
-                FINISH
-              </text>
-            )}
+            <text
+              x={futureEndX - 12}
+              y={futureGradientY + paneMetrics.height - 10}
+              textAnchor="end"
+              fill={ACCENT_STRONG}
+              fontSize="10"
+              fontWeight="700"
+              letterSpacing="1"
+            >
+              FINISH
+            </text>
           </>
         )}
 
@@ -1413,6 +1379,36 @@ function DrawingChartInner({
                 fill={ACCENT_GLOW}
               />
             </>
+          )}
+
+          {/* zero-skill field swarm: what "no insight" looked like this round */}
+          {swarmScreenPaths.length > 0 && (
+            <g>
+              {swarmScreenPaths.map((pts, i) => (
+                <path
+                  key={`swarm-${i}`}
+                  d={makePath(pts)}
+                  fill="none"
+                  stroke="rgba(148, 163, 184, 0.09)"
+                  strokeWidth="1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              ))}
+            </g>
+          )}
+
+          {/* the field forecast that just beat the player */}
+          {rivalPoints.length >= 2 && (
+            <path
+              d={makePath(rivalPoints)}
+              fill="none"
+              stroke="rgba(167, 139, 250, 0.55)"
+              strokeWidth="1.6"
+              strokeDasharray="4 3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           )}
 
           {predictionPoints.length >= 2 && (
@@ -1496,27 +1492,7 @@ function DrawingChartInner({
         </g>
 
         {drawingEnabled && !displayPath && anchorPoint && (
-          <>
-            <rect
-              x={anchorPoint.x + 16}
-              y={futureGradientY + 8}
-              width="180"
-              height="24"
-              rx="4"
-              fill="rgba(17, 17, 19, 0.92)"
-              stroke="rgba(212, 168, 92, 0.2)"
-            />
-            <text
-              x={anchorPoint.x + 28}
-              y={futureGradientY + 23}
-              fill={ACCENT_STRONG}
-              fontSize="10"
-              fontWeight="700"
-              letterSpacing="0.8"
-            >
-              DRAW IN THE FUTURE ZONE
-            </text>
-          </>
+          <></>
         )}
       </svg>
       <div

@@ -8,11 +8,11 @@
  * page for as long as fonts.googleapis.com took to answer.
  */
 @font-face {
-  font-family: 'DM Sans';
+  font-family: 'IBM Plex Sans';
   font-style: normal;
-  font-weight: 400 700;
+  font-weight: 400 600;
   font-display: swap;
-  src: url('/fonts/dm-sans-latin-var.woff2') format('woff2');
+  src: url('/fonts/ibm-plex-sans-latin-var.woff2') format('woff2');
 }
 
 @font-face {
@@ -23,6 +23,22 @@
   src: url('/fonts/jetbrains-mono-latin-var.woff2') format('woff2');
 }
 
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('/fonts/newsreader-latin-var.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Newsreader';
+  font-style: italic;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('/fonts/newsreader-italic-latin-var.woff2') format('woff2');
+}
+
 :root {
   color-scheme: dark;
 
@@ -31,36 +47,36 @@
   --bg-secondary: #111113;
   --bg-tertiary: #18181b;
   --bg-card: #1c1c20;
-  --bg-panel: rgba(17, 17, 19, 0.92);
+  --bg-panel: rgba(14, 14, 16, 0.94);
   --bg-hover: rgba(255, 255, 255, 0.03);
 
   /* Text — clean grays */
   --text-primary: #fafaf9;
   --text-secondary: #a1a1aa;
-  --text-muted: #52525b;
+  --text-muted: #5c5c66;
 
   /* Accent — warm amber, used surgically */
   --accent: #d4a85c;
-  --accent-hover: #c99b4f;
+  --accent-hover: #e2b96f;
   --accent-soft: rgba(212, 168, 92, 0.12);
   --accent-glow: rgba(212, 168, 92, 0.06);
 
-  /* Semantic */
-  --green: #22c55e;
-  --green-soft: rgba(34, 197, 94, 0.12);
-  --red: #ef4444;
-  --red-soft: rgba(239, 68, 68, 0.12);
+  /* Semantic — jade and terracotta, tuned to sit beside the amber */
+  --green: #4ea87b;
+  --green-soft: rgba(78, 168, 123, 0.12);
+  --red: #d95f5a;
+  --red-soft: rgba(217, 95, 90, 0.12);
   --teal: #67c1b4;
 
   /* Borders — neutral */
   --border: rgba(255, 255, 255, 0.06);
-  --border-strong: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.12);
 
   /* Depth */
   --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
-  --radius: 4px;
-  --radius-lg: 6px;
+  --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.55);
+  --radius: 2px;
+  --radius-lg: 3px;
 }
 
 * {
@@ -71,7 +87,7 @@ body {
   margin: 0;
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   line-height: 1.5;
@@ -143,14 +159,22 @@ button:disabled {
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   font-weight: 500;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
+/* Editorial serif for headlines — the one place the terminal breaks character */
 .dtc-display {
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  font-family: 'Newsreader', Georgia, serif;
+  font-weight: 500;
+  font-optical-sizing: auto;
+  letter-spacing: -0.012em;
+}
+
+.dtc-display-em {
+  font-family: 'Newsreader', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
 }
 
 .dtc-chip {
@@ -164,35 +188,133 @@ button:disabled {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   letter-spacing: 0.04em;
-  border-radius: 4px;
+  border-radius: var(--radius);
 }
 
 .dtc-button-primary {
-  background: var(--accent);
-  color: #000;
+  background: linear-gradient(180deg, #ddb268, var(--accent));
+  color: #14100a;
   border: none;
   border-radius: var(--radius);
   font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 1px 12px rgba(212, 168, 92, 0.14);
 }
 
 .dtc-button-primary:hover {
-  background: var(--accent-hover);
+  background: linear-gradient(180deg, #eac077, var(--accent-hover));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    0 2px 18px rgba(212, 168, 92, 0.22);
+}
+
+.dtc-button-primary:active {
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.24);
 }
 
 .dtc-button-secondary {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
 }
 
 .dtc-button-secondary:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
 }
 
 .dtc-data {
   font-family: 'JetBrains Mono', monospace;
   font-variant-numeric: tabular-nums;
+}
+
+/* Protocol-style primitives: hairline structure instead of nested boxes */
+
+.dtc-hairline-top {
+  border-top: 1px solid var(--border);
+}
+
+.dtc-strip {
+  display: grid;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.dtc-strip > * {
+  padding: 20px 0;
+}
+
+.dtc-strip > * + * {
+  border-left: 1px solid var(--border);
+  padding-left: 24px;
+}
+
+@media (max-width: 640px) {
+  .dtc-strip {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .dtc-strip > *:nth-child(odd) {
+    border-left: none;
+    padding-left: 0;
+  }
+  .dtc-strip > *:nth-child(even) {
+    padding-left: 24px;
+  }
+  .dtc-strip > *:nth-child(n + 3) {
+    border-top: 1px solid var(--border);
+  }
+}
+
+.dtc-atmosphere {
+  position: relative;
+  background:
+    radial-gradient(ellipse 900px 420px at 70% -80px, rgba(212, 168, 92, 0.055), transparent 70%),
+    radial-gradient(ellipse 700px 380px at 8% 42%, rgba(103, 193, 180, 0.022), transparent 70%),
+    var(--bg-primary);
+}
+
+/* Film grain — keeps large flat darks from reading as flat vector black */
+.dtc-atmosphere::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.32;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.18'/%3E%3C/svg%3E");
+}
+
+.dtc-atmosphere > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Vertical hairline separator for instrument-panel rows */
+.dtc-rule-left {
+  border-left: 1px solid var(--border);
+}
+
+.dtc-table-hairline {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dtc-table-hairline th {
+  text-align: left;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.dtc-table-hairline td {
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
 }
 
 .dtc-kbd {
@@ -264,6 +386,40 @@ button:disabled {
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 12px rgba(212, 168, 92, 0.1); }
   50% { box-shadow: 0 0 20px rgba(212, 168, 92, 0.2); }
+}
+
+/* ── Hero: field-vs-player animation ── */
+
+@keyframes dtc-ghost-in {
+  from { opacity: 0; }
+  to { opacity: var(--ghost-opacity, 0.1); }
+}
+
+@keyframes dtc-line-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes dtc-chip-pop {
+  0% { opacity: 0; transform: translateY(6px) scale(0.92); }
+  60% { opacity: 1; transform: translateY(-1px) scale(1.03); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.dtc-hero-ghost {
+  opacity: 0;
+  animation: dtc-ghost-in 0.7s ease-out forwards;
+}
+
+.dtc-hero-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: dtc-line-draw 1.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.dtc-hero-chip {
+  opacity: 0;
+  animation: dtc-chip-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 /* ── Scrollbar ── */

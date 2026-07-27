@@ -1,193 +1,224 @@
 import { Link } from 'react-router-dom';
-import { DEFAULT_PAYOUT_CONFIG, getBreakEvenScore } from '../../scoring/payout';
-import {
-  formatMoney,
-  formatMultiplier,
-  getPayoutExample,
-} from '../lib/payoutPresentation';
+import { useMemo } from 'react';
+import { multiplierAt, STANDARD_PAYOUT_V3, DEFAULT_FIELD_CONFIG } from '../../scoring/v3/index';
 
 export function FAQ() {
-  const breakEvenScore = getBreakEvenScore();
-  const payoutExamples = [30, 50, breakEvenScore, 70, 80, 90, 95].map((score) =>
-    getPayoutExample(score, 100),
+  const breakEvenPct = Math.round(100 * STANDARD_PAYOUT_V3.breakEvenPercentile);
+  const edgePct = (100 * STANDARD_PAYOUT_V3.houseEdge).toFixed(0);
+  const fieldSize = DEFAULT_FIELD_CONFIG.B.toLocaleString();
+
+  const payoutRows = useMemo(
+    () =>
+      [25, 50, 65, 80, 90, 95, 99, 100].map((score) => ({
+        score,
+        multiplier: multiplierAt(score / 100),
+      })),
+    [],
   );
-  const profitExamples = {
-    score70: getPayoutExample(70, 100).multiplier,
-    score80: getPayoutExample(80, 100).multiplier,
-    score90: getPayoutExample(90, 100).multiplier,
-  };
 
   return (
     <div className="min-h-screen pt-12">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-end justify-between gap-4 mb-6">
-          <div>
-            <h1 className="dtc-display text-2xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
-              How It Works
-            </h1>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              Scoring, payout, and fairness mechanics.
-            </p>
-          </div>
-          <Link
-            to="/whitepaper"
-            className="px-3 py-1.5 text-xs font-medium no-underline dtc-button-secondary shrink-0"
+      <div className="max-w-3xl mx-auto px-6 py-14">
+        <div className="mb-12">
+          <div className="dtc-eyebrow mb-3">Documentation</div>
+          <h1 className="dtc-display text-3xl mb-3" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+            How It Works
+          </h1>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)', maxWidth: 460, lineHeight: 1.65 }}>
+            The field, the score, the payout — and why none of it can cheat you.
+            The formal version lives in the{' '}
+            <Link to="/whitepaper" style={{ color: 'var(--accent)' }} className="no-underline">whitepaper</Link>.
+          </p>
+        </div>
+
+        <Section n="01" title="Your score is a rank, not a grade">
+          <p className="mb-4">
+            When your round settles, DTC generates{' '}
+            <strong style={{ color: 'var(--text-primary)' }}>{fieldSize} simulated forecasts</strong> for
+            that exact round — the field — and measures every one of them against what actually
+            happened, using the same yardstick as your drawing. Your score is the share of the field you beat:
+          </p>
+          <div
+            className="dtc-data text-[13px] px-4 py-3 rounded mb-4"
+            style={{ background: 'rgba(255,255,255,0.02)', borderLeft: '2px solid var(--accent)', color: 'var(--text-primary)' }}
           >
-            Full Paper
-          </Link>
-        </div>
-
-        <div className="space-y-4">
-          <Section title="Scoring">
-            <p className="mb-3">
-              Your prediction is scored across 4 components, totaling 0-100:
-            </p>
-            <div
-              className="grid grid-cols-1 sm:grid-cols-2 gap-px rounded overflow-hidden mb-3"
-              style={{ background: 'var(--border)', border: '1px solid var(--border)' }}
-            >
-              <ScoreComponent name="Direction" max={40} description="Multi-scale trend matching. Coarser scales weighted more." />
-              <ScoreComponent name="Magnitude" max={30} description="Bias and tracking error, normalized by realized volatility." />
-              <ScoreComponent name="Turning Points" max={20} description="Peaks and troughs matched via Hungarian algorithm." />
-              <ScoreComponent name="Volatility" max={10} description="Quarter-by-quarter volatility regime comparison." />
-            </div>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              Both paths are converted to log-return space and resampled to 120 points.
-            </p>
-          </Section>
-
-          <Section title="Payouts">
-            <p className="mb-3">Two-zone multiplier curve:</p>
-            <ul className="space-y-1.5 mb-3">
-              <li>
-                <strong style={{ color: 'var(--text-primary)' }}>Below {breakEvenScore}</strong> — partial refund, scaling from 0.40x up.
-              </li>
-              <li>
-                <strong style={{ color: 'var(--text-primary)' }}>Above {breakEvenScore}</strong> — profit zone. 70={formatMultiplier(profitExamples.score70)}, 80={formatMultiplier(profitExamples.score80)}, 90={formatMultiplier(profitExamples.score90)}.
-              </li>
-              <li>
-                <strong style={{ color: 'var(--text-primary)' }}>Hard cap</strong> — {DEFAULT_PAYOUT_CONFIG.maxMultiplier}x maximum.
-              </li>
-            </ul>
-            <div
-              className="overflow-hidden rounded"
-              style={{ border: '1px solid var(--border)' }}
-            >
-              <table className="w-full text-xs" style={{ borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
-                    <th className="text-left px-3 py-2 font-medium dtc-data" style={{ color: 'var(--text-muted)' }}>Score</th>
-                    <th className="text-right px-3 py-2 font-medium dtc-data" style={{ color: 'var(--text-muted)' }}>Mult</th>
-                    <th className="text-right px-3 py-2 font-medium dtc-data" style={{ color: 'var(--text-muted)' }}>$100 Bet</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payoutExamples.map((ex) => {
-                    const isBreakEven = ex.score === breakEvenScore;
-                    const profit = ex.score >= breakEvenScore;
-                    return (
-                      <tr
-                        key={ex.score}
-                        style={{
-                          borderTop: '1px solid var(--border)',
-                          background: isBreakEven ? 'var(--accent-soft)' : 'transparent',
-                        }}
-                      >
-                        <td className="px-3 py-1.5 dtc-data" style={{ color: isBreakEven ? 'var(--accent)' : 'var(--text-primary)' }}>
-                          {ex.score}{isBreakEven ? ' BE' : ''}
-                        </td>
-                        <td className="text-right px-3 py-1.5 dtc-data" style={{ color: profit ? 'var(--green)' : 'var(--text-secondary)' }}>
-                          {formatMultiplier(ex.multiplier)}
-                        </td>
-                        <td className="text-right px-3 py-1.5 dtc-data" style={{ color: profit ? 'var(--green)' : 'var(--text-secondary)' }}>
-                          {formatMoney(ex.payout)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </Section>
-
-          <Section title="House Edge">
-            <p>
-              2% edge. A break-even score ({breakEvenScore}/100) returns 98% of stake.
-              The edge funds high-score payouts and operational costs.
-            </p>
-          </Section>
-
-          <Section title="Fairness">
-            <ol className="space-y-1.5 list-decimal list-inside">
-              <li><strong style={{ color: 'var(--text-primary)' }}>Deterministic rounds</strong> — seed maps to reproducible historical data.</li>
-              <li><strong style={{ color: 'var(--text-primary)' }}>Commitment proof</strong> — hash, reveal payload, and verification endpoint.</li>
-              <li><strong style={{ color: 'var(--text-primary)' }}>Public config</strong> — scoring, payout, and protocol versions exposed via API.</li>
-            </ol>
-          </Section>
-
-          <Section title="Assets & Timeframes">
-            <div className="flex items-center gap-3 flex-wrap text-xs">
-              <span style={{ color: 'var(--text-primary)' }}>BTC/USDT</span>
-              {['15m', '1h', '6h', '24h', '7d'].map((tf) => (
-                <span
-                  key={tf}
-                  className="dtc-data px-2 py-0.5 rounded"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
-                >
-                  {tf}
-                </span>
-              ))}
-            </div>
-          </Section>
-
-          <Section title="Sandbox Mode">
-            <p>
-              Uses historical price data for instant feedback. No real money at stake.
-              Rounds are saved locally in your browser.
-            </p>
-          </Section>
-        </div>
-
-        <footer className="mt-8 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
-          <div className="flex items-center justify-between">
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              DTC Sandbox. Not financial advice.
-            </span>
-            <Link
-              to="/validate"
-              className="text-xs no-underline"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Scoring Validation Tool &rarr;
-            </Link>
+            Score 77 = your line was closer to reality than 77% of the field
           </div>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            Because the field faces the same market you do, difficulty cancels out — a calm Sunday and
+            a violent breakout are equally fair. 50 is an average no-insight result; {breakEvenPct} breaks
+            even; 99+ is jackpot territory.
+          </p>
+        </Section>
+
+        <Section n="02" title="Who is in the field">
+          <p className="mb-4">
+            Every strategy a player <em>without</em> market insight could use — so copying one of them
+            can never beat the house:
+          </p>
+          <table className="dtc-table-hairline text-xs">
+            <tbody>
+              <FieldRow share="40%" name="Market noise" desc="realistic wiggles stitched from recent BTC behavior" />
+              <FieldRow share="20%" name="Random walks" desc="pure randomness at current volatility" />
+              <FieldRow share="15%" name="Trend followers" desc="it's been going up, so it keeps going up" />
+              <FieldRow share="10%" name="Mean reverters" desc="it moved too far, it'll come back" />
+              <FieldRow share="10%" name="Flat & drift lines" desc="not much will happen" />
+              <FieldRow share="5%" name="Lazy shapes" desc="smoothed, low-effort plausible paths" />
+            </tbody>
+          </table>
+          <p className="text-xs mt-4" style={{ color: 'var(--text-muted)' }}>
+            The field is generated deterministically from the round's seed — it cannot be regenerated
+            after the fact to hand you a worse rank, and anyone can reproduce it to verify a settled round.
+          </p>
+        </Section>
+
+        <Section n="03" title="How closeness is measured">
+          <table className="dtc-table-hairline text-xs">
+            <tbody>
+              <FieldRow share="50" name="Shape & Timing" desc="moves like reality moved — slightly early or late still counts, no cliffs" />
+              <FieldRow share="30" name="Direction" desc="up when it went up, weighted by how big each move was" />
+              <FieldRow share="20" name="Level" desc="finished near the right price, no systematic drift" />
+            </tbody>
+          </table>
+          <p className="text-xs mt-4" style={{ color: 'var(--text-muted)' }}>
+            This 0–100 accuracy is only used to <em>rank</em> you against the field — money always flows
+            through the rank. Paths are compared in log-return space at 120 points.
+          </p>
+        </Section>
+
+        <Section n="04" title="Payouts">
+          <p className="mb-4">
+            Three zones: partial refunds below break-even, growing profits above it, and a jackpot tail
+            for beating essentially everyone. Cap: {STANDARD_PAYOUT_V3.maxMultiplier}x.
+          </p>
+          <table className="dtc-table-hairline text-xs dtc-data" style={{ maxWidth: 380 }}>
+            <thead>
+              <tr>
+                <th>Score</th>
+                <th style={{ textAlign: 'right' }}>Mult</th>
+                <th style={{ textAlign: 'right' }}>$100 bet returns</th>
+              </tr>
+            </thead>
+            <tbody>
+              {payoutRows.map((row) => {
+                const isBreakEven = row.score === breakEvenPct;
+                const profit = row.score >= breakEvenPct;
+                return (
+                  <tr key={row.score}>
+                    <td style={{ color: isBreakEven ? 'var(--accent)' : 'var(--text-primary)' }}>
+                      {row.score}{isBreakEven ? ' · BE' : ''}
+                    </td>
+                    <td style={{ textAlign: 'right', color: profit ? 'var(--green)' : 'var(--text-secondary)' }}>
+                      {row.multiplier.toFixed(2)}x
+                    </td>
+                    <td style={{ textAlign: 'right', color: profit ? 'var(--green)' : 'var(--text-secondary)' }}>
+                      ${(100 * row.multiplier).toFixed(0)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </Section>
+
+        <Section n="05" title="The house edge is exact">
+          <p>
+            A player with no real insight is statistically identical to the field, so their rank is a
+            coin toss across all {fieldSize} positions — and the payout curve is built so a random rank
+            pays back exactly {100 - Number(edgePct)}% of the stake on average. That {edgePct}% edge holds
+            by construction in every market regime: no tuning, no luck. Beating it consistently means
+            genuine forecasting skill — which is the point of the game.
+          </p>
+        </Section>
+
+        <Section n="06" title="Honest quirks">
+          <div className="space-y-4">
+            <Quirk title="Flat lines lose.">
+              Drawing "nothing happens" is a no-thesis play — most of the field expresses some view,
+              so flat lines typically rank in the bottom third. The game rewards having an opinion.
+            </Quirk>
+            <Quirk title="Tail events happen.">
+              When the market does something almost nobody could predict, the whole field misses and
+              ranks are decided among imperfect forecasts. The reveal flags these rounds and shows how
+              the field did, so a strange-feeling score always comes with context.
+            </Quirk>
+            <Quirk title="Right direction, timid size pays fairly.">
+              Call the direction but draw a tenth of the move, and you beat the half of the field that
+              leaned wrong — and lose to everyone who committed. The rank reflects exactly that.
+            </Quirk>
+          </div>
+        </Section>
+
+        <Section n="07" title="Fairness & verifiability">
+          <div className="space-y-3">
+            <Quirk title="Deterministic rounds.">
+              Every round replays exactly from its seed, field included.
+            </Quirk>
+            <Quirk title="Committed before you draw.">
+              The round — and the field's seed — is fixed before your first stroke.
+            </Quirk>
+            <Quirk title="Tested continuously.">
+              129 automated checks assert the edge is exact and good drawings beat random ones,
+              on every code change.
+            </Quirk>
+          </div>
+        </Section>
+
+        <Section n="08" title="Sandbox">
+          <p>
+            Rounds replay historical BTC/USDT data across five horizons (15m, 1h, 6h, 24h, 7d) for
+            instant feedback. No real money at stake. Your journal is saved locally in this browser.
+          </p>
+        </Section>
+
+        <footer className="dtc-hairline-top mt-14 pt-5 flex items-center justify-between">
+          <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+            Sandbox — not financial advice.
+          </span>
+          <Link
+            to="/validate"
+            className="text-[11px] no-underline"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Scoring validation tool &rarr;
+          </Link>
         </footer>
       </div>
     </div>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
   return (
-    <div className="dtc-panel p-4">
-      <h2 className="text-base font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-        {title}
-      </h2>
-      <div className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-        {children}
+    <div className="dtc-hairline-top py-8 grid grid-cols-[44px_1fr] gap-4">
+      <div className="dtc-data text-[11px] pt-1" style={{ color: 'var(--text-muted)' }}>{n}</div>
+      <div>
+        <h2 className="text-base font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>
+          {title}
+        </h2>
+        <div className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+          {children}
+        </div>
       </div>
     </div>
   );
 }
 
-function ScoreComponent({ name, max, description }: { name: string; max: number; description: string }) {
+function FieldRow({ share, name, desc }: { share: string; name: string; desc: string }) {
   return (
-    <div className="p-3" style={{ background: 'var(--bg-secondary)' }}>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{name}</span>
-        <span className="dtc-data text-[11px]" style={{ color: 'var(--accent)' }}>{max} pts</span>
-      </div>
-      <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{description}</p>
-    </div>
+    <tr>
+      <td className="dtc-data" style={{ color: 'var(--accent)', width: 46 }}>{share}</td>
+      <td style={{ color: 'var(--text-primary)', width: 150 }}>{name}</td>
+      <td style={{ color: 'var(--text-muted)' }}>{desc}</td>
+    </tr>
+  );
+}
+
+function Quirk({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <p className="text-sm leading-relaxed">
+      <strong style={{ color: 'var(--text-primary)' }}>{title}</strong>{' '}
+      <span style={{ color: 'var(--text-secondary)' }}>{children}</span>
+    </p>
   );
 }

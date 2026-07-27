@@ -24,12 +24,12 @@ export interface PayoutConfig {
 }
 
 export const DEFAULT_PAYOUT_CONFIG: PayoutConfig = {
-  houseEdge: 0.02,
-  breakEvenScore: 0.60,
-  minMultiplier: 0.40,
-  refundExponent: 1.45,
-  maxMultiplier: 25,
-  profitGrowthK: 3.25,
+  houseEdge: 0.03,
+  breakEvenScore: 0.61,
+  minMultiplier: 0.39,
+  refundExponent: 1.5,
+  maxMultiplier: 18,
+  profitGrowthK: 2.6,
 };
 
 export function getBreakEvenScore(

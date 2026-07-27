@@ -1,6 +1,6 @@
 import type { LogReturnPath, ScoringConfig } from './types.js';
 
-const NEUTRAL_PREDICTION_CREDIT = 0.05;
+const NEUTRAL_PREDICTION_CREDIT = 0.08;
 
 /**
  * Component A: Directional Accuracy (0–40 points)
@@ -61,5 +61,5 @@ export function computeDirectionScore(
   }
 
   if (totalWeight === 0) return 0;
-  return 40 * (weightedSum / totalWeight);
+  return 39 * (weightedSum / totalWeight);
 }
