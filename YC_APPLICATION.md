@@ -419,3 +419,80 @@ I'd rather be direct about the build time than dress it up. The code was fast be
 - **The closing paragraph deliberately echoes the progress answer** (testing is the
   bottleneck, not building). Partners read these fields together; the same true claim in
   several places reads as conviction.
+
+## "How do or will you make money? How much could you make?"
+
+### Recommended answer
+
+We're the house. Revenue is the gap between what players stake and what the payout curve returns — gross gaming revenue, booked at settlement. No fees, no spread, no subscription, no token.
+
+We can measure it rather than guess. Running our payout engine against baseline strategies over 302,000 historical candles, the house keeps 34% of stake against casual play and 22% against more considered play. That is high — slots hold 3-6%, sportsbooks 5-10%, Kalshi's fee is 1-2% of notional. We treat hold as a dial to turn down, not a number to defend: at 34% a $150 deposit is gone in six weeks, which buys revenue this month and kills the player. We expect to calibrate toward 10-15%, trading margin for lifetime.
+
+On size: Kalshi and Polymarket cleared $44.8B of volume in June 2026 and Kalshi alone booked ~$850M in fees this year. On-chain perps clear over $1T a month. Global online gambling GGR is $115B. We compete for the same wallet as all three, so the question isn't category size — it's share of a speculative crypto wallet.
+
+Anchoring on deposits rather than optimistic session counts:
+
+- Year 1: ~3,000 depositors averaging $120 net -> ~$400k
+- Year 3: ~120,000 depositors at $220 -> ~$26M
+- Year 5: ~500,000 depositors at $260 -> ~$130M
+
+The upside case is higher: 60,000 monthly actives playing 20 rounds at a $30 stake with a 15% hold is $432M staked and $65M of revenue — 0.08% of today's prediction-market volume. Which of these we hit is not decided by market size. It's decided by whether a 10-15% hold retains players, and that's the first thing we measure with real money.
+
+### Measured unit economics (from `npm run economics`)
+
+Mean payout multiplier by strategy, and therefore what the house keeps:
+
+| Strategy | Mean multiplier | House keeps |
+|---|---|---|
+| Flat line | 0.56x | 44% |
+| Random walk | 0.71x | 29% |
+| Naive trend | 0.80x | 20% |
+| Mean reversion | 0.83x | 17% |
+| Casual blend | 0.66x | 34% |
+| Engaged blend | 0.78x | 22% |
+
+The published "2% house edge" is the edge **at the break-even score**, not the realised hold.
+Baseline strategies score 24-43 against a break-even of 60, so typical play sits deep in the
+refund zone and loses far more than 2%. Both the product description and WHITEPAPER.md should
+say "2% edge at break-even; effective hold depends on the score distribution" — a partner
+reading both fields will otherwise catch the discrepancy, and so will a player.
+
+### Why hold is the number that decides the business
+
+$150 deposit, 18 rounds/month, $20 stake:
+
+| Hold | Loses per month | Deposit gone in |
+|---|---|---|
+| 34% | $122 | 1.2 months |
+| 25% | $90 | 1.7 months |
+| 15% | $54 | 2.8 months |
+| 8% | $29 | 5.2 months |
+| 4% | $14 | 10.4 months |
+
+Benchmarks: slots 3-6% of handle, sportsbooks 5-10%, poker rake 3-5%, prediction markets
+1-2% of notional, perp DEXs single-digit basis points. Current calibration is 4-10x a slot.
+
+### Two models, and why the lower one is quoted
+
+**Deposit-anchored (base case).** Revenue is approximately net deposits, because at this hold
+the house eventually captures nearly all of it. Bounded by what people are willing to fund.
+
+**Session-based (upside).** MAU x rounds x stake x hold. Year 3 gives $65M against the
+deposit model's $26M, because it assumes indefinite redepositing.
+
+The application quotes the deposit-anchored figures as the base case and shows the
+session-based one as upside. The reverse is harder to defend under questioning.
+
+### Market data used (retrieved July 2026)
+
+| Figure | Value | Source |
+|---|---|---|
+| Kalshi + Polymarket monthly volume, Jun 2026 | $44.8B | prediction-market volume trackers |
+| Kalshi cumulative fee revenue, 2026 YTD | ~$850M | reporting on Kalshi fee take |
+| Prediction market industry volume, 2025 | >$63B | same |
+| On-chain perp DEX monthly volume | >$1T (3-month streak) | DEX volume reporting |
+| Hyperliquid share of on-chain perps | ~70% | same |
+| Global iGaming GGR 2026 | $115B, +12% YoY | iGaming industry statistics |
+
+Model script: `scratchpad/model.mjs` (scenarios, deposit cross-check, top-down share,
+hold-vs-lifetime table).
