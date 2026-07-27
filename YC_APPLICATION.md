@@ -422,7 +422,22 @@ I'd rather be direct about the build time than dress it up. The code was fast be
 
 ## "How do or will you make money? How much could you make?"
 
-### Recommended answer
+### FINAL — paste this
+
+We're the house. Our revenue is the gap between what players stake and what the payout curve pays back — no fees, no subscription, no token.
+
+We're setting that gap at 5-8% of everything staked, the same range slot machines (3-6%) and sportsbooks (5-10%) operate in.
+
+At 6%: a player staking $20 a round, 18 rounds a month, loses about $22 a month. A $150 deposit lasts around seven months, and each depositor is worth roughly $97 to us.
+
+So:
+Year 1 — 3,000 depositors — ~$290k
+Year 3 — 90,000 depositors — ~$11M
+Year 5 — 400,000 depositors — ~$58M
+
+For context: global online gambling is a $115B-a-year business, and Kalshi and Polymarket alone traded $44.8B in June 2026. Our year-five case is 0.05% of the gambling pool. We don't need to win a category — we need a small share of a wallet that already exists.
+
+### Longer version (kept for reference)
 
 We're the house. Revenue is gross gaming revenue — the gap between what players stake and what the payout curve returns, booked at settlement. No fees, no spread, no subscription, no token.
 
