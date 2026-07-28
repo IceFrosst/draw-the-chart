@@ -1,0 +1,267 @@
+<style>
+  @font-face { font-family:'DM Sans'; src:url('file:///home/user/draw-the-chart/public/fonts/dm-sans-latin-var.woff2') format('woff2'); font-weight:400 700; }
+  @font-face { font-family:'JB'; src:url('file:///home/user/draw-the-chart/public/fonts/jetbrains-mono-latin-var.woff2') format('woff2'); font-weight:400 700; }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1920px;height:1080px;background:#09090b;overflow:hidden;
+    font-family:'DM Sans',system-ui,sans-serif;color:#fafaf9}
+  #stage{position:relative;width:1920px;height:1080px;overflow:hidden}
+  .mono{font-family:'JB',monospace}
+  #vig{position:absolute;inset:0;pointer-events:none;z-index:40;
+    background:radial-gradient(128% 100% at 50% 46%,rgba(0,0,0,0) 62%,rgba(0,0,0,.5) 100%)}
+  #grain{position:absolute;inset:0;pointer-events:none;z-index:41;opacity:.03;mix-blend-mode:overlay}
+  #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:42}
+  #bloom{position:absolute;inset:0;pointer-events:none;z-index:1}
+  .cap{position:absolute;left:0;right:0;text-align:center;z-index:30;opacity:0}
+  .cap h1{font-size:82px;line-height:1.02;letter-spacing:-2px;font-weight:700}
+  .cap .k{font-family:'JB',monospace;font-size:19px;letter-spacing:7px;color:#d4a85c;margin-bottom:20px}
+  #hud{position:absolute;top:52px;left:64px;right:64px;display:flex;justify-content:space-between;z-index:30}
+  #wm{font-family:'JB',monospace;font-size:19px;letter-spacing:7px;color:#52525b}
+  #tape{display:flex;gap:46px}
+  .tk{text-align:right;min-width:132px}
+  .tk .s{font-family:'JB',monospace;font-size:15px;letter-spacing:2.4px}
+  .tk .p{font-family:'JB',monospace;font-size:22px;color:#a1a1aa;margin-top:5px}
+  #foot{position:absolute;bottom:44px;left:64px;right:64px;display:flex;justify-content:space-between;
+    font-family:'JB',monospace;font-size:15px;letter-spacing:2.2px;color:#52525b;z-index:30}
+  #meta{position:absolute;bottom:190px;left:0;right:0;text-align:center;font-family:'JB',monospace;
+    font-size:22px;letter-spacing:3px;color:#71717a;opacity:0;z-index:30}
+  #scoreWrap{position:absolute;left:0;right:0;top:150px;text-align:center;opacity:0;z-index:30}
+  #pct{font-family:'JB',monospace;font-size:150px;font-weight:700;color:#22c55e;line-height:1;
+    letter-spacing:-4px}
+  #pctsub{font-family:'JB',monospace;font-size:24px;color:#71717a;letter-spacing:3px;margin-top:12px}
+  #bars{display:flex;gap:52px;justify-content:center;margin-top:38px}
+  .bar{width:210px;text-align:left}
+  .bar .l{font-family:'JB',monospace;font-size:15px;color:#71717a;letter-spacing:1.6px;margin-bottom:9px}
+  .bar .t{height:4px;background:#18181b;border-radius:2px;overflow:hidden}
+  .bar .f{height:100%;width:0;background:#d4a85c;border-radius:2px}
+  #money{position:absolute;left:0;right:0;top:556px;text-align:center;opacity:0;z-index:30;
+    font-family:'JB',monospace}
+  #money .m{font-size:104px;font-weight:700;color:#22c55e;letter-spacing:-2px}
+  #money .p{font-size:44px;color:#22c55e;margin-top:10px}
+  #end{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;opacity:0;z-index:35;background:#09090b}
+  #end .lg{font-family:'JB',monospace;font-size:34px;letter-spacing:16px;color:#fafaf9}
+  #end .rule{width:0;height:1px;background:#d4a85c;margin:34px 0}
+  #end .u{font-family:'JB',monospace;font-size:23px;letter-spacing:6px;color:#d4a85c}
+  #end .d{position:absolute;bottom:64px;font-family:'JB',monospace;font-size:14px;
+    letter-spacing:3px;color:#3f3f46}
+</style>
+
+<div id="stage">
+  <div id="bloom"></div>
+  <svg id="chart" viewBox="0 0 1920 1080" style="position:absolute;inset:0;z-index:10;transform-origin:50% 44%"></svg>
+  <div id="hud"><div id="wm">DRAW THE CHART</div><div id="tape"></div></div>
+
+  <div class="cap" id="c1" style="top:704px"><div class="k">YOUR MOVE</div><h1>Draw what happens next.</h1></div>
+  <div class="cap" id="c2" style="top:704px"><div class="k">SETTLEMENT</div><h1>The market answers.</h1></div>
+  <div class="cap" id="c3" style="top:812px"><div class="k">SCORED</div><h1>Paid on how close you got.</h1></div>
+  <div class="cap" id="c0" style="top:690px"><div class="k">LIVE</div><h1>Every market is a shape.</h1></div>
+
+  <div id="meta"></div>
+  <div id="scoreWrap">
+    <div id="pct">0.0</div><div id="pctsub"></div>
+    <div id="bars">
+      <div class="bar"><div class="l">DIRECTION</div><div class="t"><div class="f" id="b0"></div></div></div>
+      <div class="bar"><div class="l">SHAPE</div><div class="t"><div class="f" id="b1"></div></div></div>
+      <div class="bar"><div class="l">LEVEL</div><div class="t"><div class="f" id="b2"></div></div></div>
+    </div>
+  </div>
+  <div id="money"><div class="m" id="mult">1.00x</div><div class="p" id="prof">+$0</div></div>
+
+  <div id="foot"><span id="fl"></span><span>ILLUSTRATIVE · SANDBOX</span></div>
+  <div id="end">
+    <div class="lg">DRAW THE CHART</div><div class="rule"></div><div class="u">drawthechart.xyz</div>
+    <div class="d">ILLUSTRATIVE · SANDBOX · MOST ROUNDS LOSE</div>
+  </div>
+  <div id="vig"></div><canvas id="grain" width="1920" height="1080"></canvas>
+  <div id="flash"></div>
+</div>
+
+<script>
+const R = window.__ROUND__;
+const S = 'http://www.w3.org/2000/svg';
+const clamp=(v,a=0,b=1)=>v<a?a:v>b?b:v;
+const seg=(t,a,b)=>clamp((t-a)/(b-a));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const eOut=t=>1-Math.pow(1-t,3);
+const eInOut=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const nz=s=>{const x=Math.sin(s*12.9898)*43758.5453;return x-Math.floor(x)};
+
+/* ---------- static grain ---------- */
+(()=>{const c=document.getElementById('grain'),x=c.getContext('2d');
+ const d=x.createImageData(1920,1080);
+ for(let i=0;i<d.data.length;i+=4){const v=nz(i*.013)*255;d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255;}
+ x.putImageData(d,0,0);})();
+
+/* ---------- geometry ---------- */
+const PL=150, PR=1770, PT=200, PB=760, AX=PL+(PR-PL)*0.42;
+const all=[...R.lookbackPrices,...R.predictedPrices,...R.actualPrices];
+const PMIN=Math.min(...all)-1.6, PMAX=Math.max(...all)+1.6;
+const py=p=>PB-((p-PMIN)/(PMAX-PMIN))*(PB-PT);
+const fx=t=>AX+(PR-AX)*t;
+const poly=pts=>pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+
+const MK=[{s:'AAPL',c:'#8b8b93',v:232.14},{s:'NVDA',c:'#d4a85c',v:178.62},
+          {s:'BTC',c:'#67c1b4',v:92442.15},{s:'OIL',c:'#9a6b5c',v:71.08}];
+const walk=(n,sd,vol,dr)=>{const o=[0];for(let i=1;i<n;i++)o.push(o[i-1]+(nz(i*1.7+sd)-.5)*vol+(nz(i*.31+sd*3.3)-.5)*vol*1.9+dr);return o};
+const norm=a=>{const mn=Math.min(...a),mx=Math.max(...a),sp=mx-mn||1;return a.map(v=>(v-mn)/sp)};
+const HN=120;
+const SERIES=[norm(walk(HN,11.9,1,-.02)),norm(R.lookbackPrices),norm(walk(HN,27.4,1.5,.02)),norm(walk(HN,5.1,.8,-.05))];
+
+const chart=document.getElementById('chart');
+chart.innerHTML=`<defs>
+ <linearGradient id="zone" x1="0" y1="0" x2="1" y2="0">
+  <stop offset="0%" stop-color="rgba(212,168,92,.15)"/><stop offset="100%" stop-color="rgba(212,168,92,.015)"/></linearGradient>
+ <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0%" stop-color="rgba(212,168,92,.20)"/><stop offset="100%" stop-color="rgba(212,168,92,0)"/></linearGradient>
+ <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+  <feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+ <g id="grid"></g><rect id="zoneR" y="${PT-40}" height="${PB-PT+90}" fill="url(#zone)"/>
+ <line id="nowL" y1="${PT-40}" y2="${PB+50}" stroke="rgba(255,255,255,.28)" stroke-dasharray="6 7"/>
+ <text id="nowT" y="${PB+42}" text-anchor="end" fill="#52525b" font-family="JB,monospace" font-size="17" letter-spacing="2.5">NOW</text>
+ <g id="others"></g><g id="swarm"></g>
+ <path id="areaP" fill="url(#fill)"/>
+ <path id="hist" fill="none" stroke="#d4a85c" stroke-linecap="round" stroke-linejoin="round"/>
+ <path id="drawn" fill="none" stroke="#d4a85c" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1"/>
+ <path id="actual" fill="none" stroke="#67c1b4" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1"/>
+ <circle id="halo" fill="rgba(212,168,92,.11)"/><circle id="anch" fill="#09090b" stroke="#d4a85c" stroke-width="4"/>
+ <g id="nodes"></g><circle id="tipH" fill="rgba(212,168,92,.2)"/><circle id="tip" fill="#d4a85c"/>
+ <circle id="rtipH" fill="rgba(103,193,180,.2)"/><circle id="rtip" fill="#67c1b4"/>`;
+const $=id=>document.getElementById(id);
+[200,340,480,620,760].forEach(y=>{const l=document.createElementNS(S,'line');
+  l.setAttribute('x1',PL);l.setAttribute('x2',PR);l.setAttribute('y1',y);l.setAttribute('y2',y);
+  l.setAttribute('stroke','rgba(255,255,255,.035)');$('grid').appendChild(l)});
+const others=[0,2,3].map(i=>{const p=document.createElementNS(S,'path');
+  p.setAttribute('fill','none');p.setAttribute('stroke',MK[i].c);p.setAttribute('stroke-width','2.6');
+  p.setAttribute('stroke-linecap','round');p.setAttribute('pathLength','1');p.setAttribute('stroke-dasharray','1');
+  $('others').appendChild(p);return {p,i}});
+const swarm=(R.swarm||[]).slice(0,28).map(sp=>{const p=document.createElementNS(S,'path');
+  p.setAttribute('fill','none');p.setAttribute('stroke','#94a3b8');p.setAttribute('stroke-width','1.6');
+  $('swarm').appendChild(p);return {p,sp}});
+const nodes=[0,.18,.36,.54,.74,1].map(t=>{const c=document.createElementNS(S,'circle');
+  c.setAttribute('fill','#09090b');c.setAttribute('stroke','#d4a85c');c.setAttribute('stroke-width','3.4');
+  $('nodes').appendChild(c);return {c,t}});
+$('tape').innerHTML=MK.map(m=>`<div class="tk" data-s="${m.s}"><div class="s" style="color:${m.c}">${m.s}</div><div class="p"></div></div>`).join('');
+const tks=[...document.querySelectorAll('.tk')];
+
+const DP=R.predictedPrices, AP=R.actualPrices;
+const drawnD=poly(DP.map((p,i)=>[fx(i/(DP.length-1)),py(p)]));
+const actualD=poly(AP.map((p,i)=>[fx(i/(AP.length-1)),py(p)]));
+$('drawn').setAttribute('d',drawnD); $('actual').setAttribute('d',actualD);
+$('areaP').setAttribute('d',drawnD+` L ${PR} ${PB} L ${AX} ${PB} Z`);
+const dEl=$('drawn'), aEl=$('actual'), dLen=dEl.getTotalLength(), aLen=aEl.getTotalLength();
+
+/* ---------- timeline (seconds) ---------- */
+const T={ stream:[0,2.6], freeze:[2.9,3.9], iso:[3.6,5.4], zoom:[4.4,6.6], anchor:[6.4,8.0],
+          draw:[8.2,13.4], lock:[13.4,15.0], hold:[15.0,16.8], reveal:[16.8,21.4],
+          swarm:[21.0,23.0], score:[22.0,26.6], money:[26.6,29.4], end:[29.4,30.7] };
+const caps=[['c0',0.5,3.4],['c1',8.0,14.6],['c2',17.0,21.6],['c3',26.4,29.4]];
+
+window.__seek=function(t){
+  const stream=eOut(seg(t,T.stream[0],T.stream[1]));
+  const freeze=seg(t,T.freeze[0],T.freeze[1]);
+  const iso=eInOut(seg(t,T.iso[0],T.iso[1]));
+  const zoom=eInOut(seg(t,T.zoom[0],T.zoom[1]));
+  const anch=eOut(seg(t,T.anchor[0],T.anchor[1]));
+  const draw=eInOut(seg(t,T.draw[0],T.draw[1]));
+  const lock=eOut(seg(t,T.lock[0],T.lock[1]));
+  const rev=eInOut(seg(t,T.reveal[0],T.reveal[1]));
+  const sw=seg(t,T.swarm[0],T.swarm[1]);
+  const sc=eOut(seg(t,T.score[0],T.score[1]));
+  const mo=eOut(seg(t,T.money[0],T.money[1]));
+  const en=eOut(seg(t,T.end[0],T.end[1]));
+  const breathe=Math.sin(t*2.1);
+
+  const histR=lerp(PR,AX,anch);
+  const hx=i=>PL+((histR-PL)*i)/(HN-1);
+  const bandY=v=>lerp(PB-40,PT+40,v);
+
+  others.forEach(({p,i})=>{
+    const lane=(i-1)*0.13;
+    p.setAttribute('d',poly(SERIES[i].map((v,j)=>[hx(j),bandY(clamp(.5+(v-.5)*.72+lane))])));
+    p.setAttribute('stroke-dashoffset',1-stream);
+    p.setAttribute('opacity',(1-iso)*0.95);
+  });
+  $('hist').setAttribute('d',poly(SERIES[1].map((v,i)=>[hx(i),lerp(bandY(v),py(R.lookbackPrices[i]),zoom)])));
+  $('hist').setAttribute('stroke-width',lerp(2.6,4,zoom));
+  $('hist').setAttribute('stroke-dashoffset',0);
+  $('hist').setAttribute('pathLength',1);
+  $('hist').setAttribute('stroke-dasharray',1);
+  $('hist').setAttribute('stroke-dashoffset',1-stream);
+
+  $('zoneR').setAttribute('x',AX); $('zoneR').setAttribute('width',(PR-AX)*anch);
+  $('nowL').setAttribute('x1',AX);$('nowL').setAttribute('x2',AX);$('nowL').setAttribute('opacity',anch);
+  $('nowT').setAttribute('x',AX-16);$('nowT').setAttribute('opacity',anch);
+  const ay=py(R.anchor);
+  $('anch').setAttribute('cx',AX);$('anch').setAttribute('cy',ay);$('anch').setAttribute('r',lerp(0,12,anch));
+  $('halo').setAttribute('cx',AX);$('halo').setAttribute('cy',ay);
+  $('halo').setAttribute('r',lerp(16,34,(breathe+1)/2)*anch*(1-sc*.8));
+
+  dEl.setAttribute('stroke-dashoffset',1-draw);
+  dEl.setAttribute('filter',draw>0&&draw<1?'url(#glow)':'none');
+  dEl.setAttribute('stroke-width',lerp(6,5,lock));
+  $('areaP').setAttribute('opacity',seg(draw,.9,1)*.95);
+  if(draw>.01&&draw<.995){const pt=dEl.getPointAtLength(dLen*draw);
+    $('tip').setAttribute('cx',pt.x);$('tip').setAttribute('cy',pt.y);$('tip').setAttribute('r',10);
+    $('tipH').setAttribute('cx',pt.x);$('tipH').setAttribute('cy',pt.y);$('tipH').setAttribute('r',30);
+  } else {$('tip').setAttribute('r',0);$('tipH').setAttribute('r',0);}
+
+  nodes.forEach((n,i)=>{const a=clamp(lock*nodes.length-i);
+    n.c.setAttribute('cx',fx(n.t));n.c.setAttribute('cy',py(DP[Math.round(n.t*(DP.length-1))]));
+    n.c.setAttribute('r',lerp(20,8,eOut(a)));n.c.setAttribute('opacity',a)});
+
+  aEl.setAttribute('stroke-dashoffset',1-rev);
+  if(rev>.02&&rev<.99){const pt=aEl.getPointAtLength(aLen*rev);
+    $('rtip').setAttribute('cx',pt.x);$('rtip').setAttribute('cy',pt.y);$('rtip').setAttribute('r',9);
+    $('rtipH').setAttribute('cx',pt.x);$('rtipH').setAttribute('cy',pt.y);$('rtipH').setAttribute('r',26);
+  } else {$('rtip').setAttribute('r',0);$('rtipH').setAttribute('r',0);}
+
+  swarm.forEach((s,i)=>{const a=clamp(sw*swarm.length*1.4-i);
+    const n=s.sp.length;
+    s.p.setAttribute('d',poly(s.sp.map((lr,j)=>[fx(j/(n-1)),py(R.anchor*Math.exp(lr))])));
+    s.p.setAttribute('opacity',a*0.16*(1-sc*0.55))});
+
+  tks.forEach((el,i)=>{const alive=i===1?1:1-iso;
+    el.style.opacity=(alive*stream).toFixed(3);
+    el.style.transform=`translateY(${((1-alive)*-14).toFixed(1)}px)`;
+    const jitter=(nz(Math.floor(t*11)+i*9.3)-.5)*(1-freeze)*0.0007;
+    el.querySelector('.p').textContent=(MK[i].v*(1+jitter)).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})});
+
+  caps.forEach(([id,a,b])=>{const el=$(id);
+    const o=Math.min(eOut(seg(t,a,a+.75)),1-eOut(seg(t,b-.6,b)));
+    el.style.opacity=o.toFixed(3);
+    el.style.transform=`translateY(${lerp(26,-10,eOut(seg(t,a,b))).toFixed(1)}px)`});
+
+  const pct=R.percentile*sc;
+  $('scoreWrap').style.opacity=sc.toFixed(3);
+  $('scoreWrap').style.transform=`translateY(${lerp(24,0,sc).toFixed(1)}px)`;
+  $('pct').textContent=pct.toFixed(1);
+  $('pctsub').textContent=sc>.15?`TH PERCENTILE · BEAT ${Math.round(R.beaten*sc).toLocaleString()} OF ${R.fieldSize.toLocaleString()}`:'';
+  [['b0',R.similarity.direction,30],['b1',R.similarity.shape,40],['b2',R.similarity.level,30]]
+    .forEach(([id,v,mx],i)=>{const f=clamp(sc*3-i);$(id).style.width=((v/mx)*f*100).toFixed(1)+'%'});
+
+  $('money').style.opacity=mo.toFixed(3);
+  $('money').style.transform=`translateY(${lerp(22,0,mo).toFixed(1)}px)`;
+  $('mult').textContent=lerp(1,R.multiplier,mo).toFixed(2)+'x';
+  $('prof').textContent='+$'+Math.round(R.profit*mo).toLocaleString()+' on $'+R.stake;
+
+  $('meta').style.opacity=(lock*(1-sc)).toFixed(3);
+  $('meta').textContent=`NVDA · 2H · STAKE $${R.stake} · COMMITTED`;
+  $('fl').textContent=t<T.anchor[1]?'':`ROUND 445625 · ANCHOR $${R.anchor.toFixed(2)}`;
+
+  $('flash').style.opacity=(freeze>0&&freeze<1?Math.sin(freeze*Math.PI)*.11:0).toFixed(3);
+  $('bloom').style.background=`radial-gradient(58% 48% at ${lerp(34,66,eInOut(clamp(t/26))).toFixed(1)}% ${lerp(40,52,eInOut(clamp(t/26))).toFixed(1)}%, rgba(212,168,92,${(0.05+mo*0.06).toFixed(3)}) 0%, rgba(212,168,92,0) 70%)`;
+
+  // The chart pulls back once scoring starts: text over a live chart is unreadable, and
+  // receding it makes the numbers the subject rather than an overlay.
+  const recede=eInOut(seg(t,21.6,23.6));
+  chart.style.opacity=(1-recede*0.74).toFixed(3);
+  chart.style.transform=`scale(${(1-recede*0.05).toFixed(4)})`;
+
+  $('end').style.opacity=en.toFixed(3);
+  $('end').querySelector('.rule').style.width=(eOut(seg(en,.3,1))*300).toFixed(0)+'px';
+  document.getElementById('hud').style.opacity=(1-en).toFixed(3);
+  document.getElementById('foot').style.opacity=(1-en).toFixed(3);
+};
+window.__seek(0);
+window.__READY__=true;
+</script>
